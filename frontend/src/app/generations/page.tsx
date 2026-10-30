@@ -5,22 +5,18 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Skeleton, StatusIndicator } from "@/components/ui";
 import { ListOrdered, Clock, RefreshCw, Play, Cpu, Layers } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { apiClient, Generation } from "@/lib/api";
 
 export default function GenerationCenterPage() {
-  const [generations, setGenerations] = useState<any[]>([]);
+  const [generations, setGenerations] = useState<Generation[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchGenerations = async () => {
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`${API_BASE_URL}/api/generations`, { headers });
-      if (res.ok) {
-        setGenerations(await res.json());
-      }
+      const data = await apiClient.generations.list();
+      setGenerations(data);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching generations:", err);
     } finally {
       setLoading(false);
     }
@@ -28,7 +24,7 @@ export default function GenerationCenterPage() {
 
   useEffect(() => {
     fetchGenerations();
-    const interval = setInterval(fetchGenerations, 4000);
+    const interval = setInterval(fetchGenerations, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -99,6 +95,11 @@ export default function GenerationCenterPage() {
                       Provider: {g.provider_name}
                     </span>
                   </div>
+                  {g.error_message && (
+                    <p className="text-xs text-rose-400 bg-rose-500/10 p-2 rounded border border-rose-500/20">
+                      {g.error_message}
+                    </p>
+                  )}
                   <p className="text-xs text-slate-400 font-mono">Job Reference ID: {g.id}</p>
                   <p className="text-[11px] text-slate-500">
                     Submitted: {new Date(g.created_at).toLocaleString()}
@@ -115,7 +116,11 @@ export default function GenerationCenterPage() {
                   </div>
                   <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
                     <div
-                      className="bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-400 h-full transition-all duration-300"
+                      className={`h-full transition-all duration-300 ${
+                        g.status === "FAILED"
+                          ? "bg-rose-500"
+                          : "bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-400"
+                      }`}
                       style={{ width: `${Math.max(5, g.progress_percentage)}%` }}
                     />
                   </div>

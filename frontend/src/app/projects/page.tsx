@@ -5,35 +5,28 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Skeleton, StatusIndicator, ConfirmationModal, Input, Select, Toast } from "@/components/ui";
 import { FolderKanban, Plus, Search, Trash2, Play, Film, Calendar } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { apiClient, Project } from "@/lib/api";
 
 export default function MyProjectsPage() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [modeFilter, setModeFilter] = useState("");
 
   // Delete State
-  const [deleteProject, setDeleteProject] = useState<any | null>(null);
+  const [deleteProject, setDeleteProject] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   const fetchProjects = async () => {
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
-      const params = new URLSearchParams();
-      if (search) params.append("search", search);
-      if (modeFilter) params.append("mode", modeFilter);
-
-      const url = `${API_BASE_URL}/api/projects${params.toString() ? `?${params.toString()}` : ""}`;
-      const res = await fetch(url, { headers });
-      if (res.ok) {
-        setProjects(await res.json());
-      }
+      const data = await apiClient.projects.list({
+        search: search || undefined,
+        mode: modeFilter || undefined,
+      });
+      setProjects(data);
     } catch (err) {
-      console.error(err);
+      console.error("Error loading projects:", err);
     } finally {
       setLoading(false);
     }
@@ -48,21 +41,12 @@ export default function MyProjectsPage() {
 
     setDeleting(true);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
-      const res = await fetch(`${API_BASE_URL}/api/projects/${deleteProject.id}`, {
-        method: "DELETE",
-        headers
-      });
-
-      if (res.ok) {
-        setToastMessage({ type: "success", text: "Project deleted successfully." });
-        setDeleteProject(null);
-        fetchProjects();
-      }
-    } catch (err) {
-      console.error(err);
+      await apiClient.projects.delete(deleteProject.id);
+      setToastMessage({ type: "success", text: "Project deleted successfully." });
+      setDeleteProject(null);
+      fetchProjects();
+    } catch (err: any) {
+      setToastMessage({ type: "error", text: err.message || "Failed to delete project." });
     } finally {
       setDeleting(false);
     }

@@ -12,18 +12,11 @@ import {
   Film,
   Wand2,
   CheckCircle2,
-  Sun,
-  Camera,
   Layers,
-  Shirt,
-  Car,
-  CloudRain,
   ChevronDown,
   ChevronUp
 } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
-
-type GenerationMode = "CHARACTER_REPLACEMENT" | "FULL_CGI_RECREATION" | "ORIGINAL_CGI_CREATION";
+import { apiClient, Character, GenerationMode } from "@/lib/api";
 
 function CreatorContent() {
   const router = useRouter();
@@ -34,15 +27,15 @@ function CreatorContent() {
   const [title, setTitle] = useState("My Cinematic CGI Video");
 
   // Characters from Library
-  const [savedCharacters, setSavedCharacters] = useState<any[]>([]);
+  const [savedCharacters, setSavedCharacters] = useState<Character[]>([]);
   const [selectedCharId, setSelectedCharId] = useState<string>(initialCharId);
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const [characterName, setCharacterName] = useState("");
+  const [charFile, setCharFile] = useState<File | null>(null);
 
   // Reference Video
   const [referenceVideo, setReferenceVideo] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoMetadata, setVideoMetadata] = useState<{ duration: number; resolution: string; fps: number } | null>(null);
 
   // Creative Prompt
   const [prompt, setPrompt] = useState("");
@@ -57,7 +50,7 @@ function CreatorContent() {
   const [animationStyle, setAnimationStyle] = useState("hyper_realistic");
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [resolution, setResolution] = useState("1080p");
-  const [aiProvider, setAiProvider] = useState("kling_ai");
+  const [aiProvider, setAiProvider] = useState("mock_engine");
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -66,19 +59,14 @@ function CreatorContent() {
   useEffect(() => {
     async function loadCharacters() {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch(`${API_BASE_URL}/api/characters`, { headers });
-        if (res.ok) {
-          const chars = await res.json();
-          setSavedCharacters(chars);
-          if (initialCharId) {
-            const match = chars.find((c: any) => c.id === initialCharId);
-            if (match) {
-              setSelectedCharId(match.id);
-              setCharacterImage(match.image_url);
-              setCharacterName(match.name);
-            }
+        const chars = await apiClient.characters.list();
+        setSavedCharacters(chars);
+        if (initialCharId) {
+          const match = chars.find((c) => c.id === initialCharId);
+          if (match) {
+            setSelectedCharId(match.id);
+            setCharacterImage(match.image_url);
+            setCharacterName(match.name);
           }
         }
       } catch (err) {
@@ -90,6 +78,7 @@ function CreatorContent() {
 
   const handleSelectSavedCharacter = (charId: string) => {
     setSelectedCharId(charId);
+    setCharFile(null);
     if (!charId) {
       setCharacterImage(null);
       setCharacterName("");
@@ -110,6 +99,7 @@ function CreatorContent() {
         return;
       }
       setSelectedCharId("");
+      setCharFile(file);
       const url = URL.createObjectURL(file);
       setCharacterImage(url);
       if (!characterName) setCharacterName(file.name.split(".")[0]);
@@ -119,14 +109,13 @@ function CreatorContent() {
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith("video/")) {
+      if (!file.type.startsWith("video/") && !file.name.match(/\.(mp4|mov|webm|avi|mkv)$/i)) {
         setToastMessage({ type: "error", text: "Please upload a valid reference video file (MP4, MOV, WEBM)." });
         return;
       }
       setVideoFile(file);
       const url = URL.createObjectURL(file);
       setReferenceVideo(url);
-      setVideoMetadata({ duration: 15, resolution: "1080p", fps: 30 });
     }
   };
 
@@ -136,7 +125,7 @@ function CreatorContent() {
       return;
     }
 
-    if ((mode === "CHARACTER_REPLACEMENT" || mode === "FULL_CGI_RECREATION") && !referenceVideo) {
+    if ((mode === "CHARACTER_REPLACEMENT" || mode === "FULL_CGI_RECREATION") && !referenceVideo && !videoFile) {
       setToastMessage({
         type: "error",
         text: `Mode '${mode.replace(/_/g, " ")}' requires a reference video upload.`
@@ -148,80 +137,40 @@ function CreatorContent() {
     setToastMessage(null);
 
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
       let charId = selectedCharId;
 
-      // If user uploaded a brand new character image, create character record first
-      if (!charId && characterImage) {
-        const charRes = await fetch(`${API_BASE_URL}/api/characters`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            name: characterName || "Custom Avatar",
-            image_url: characterImage
-          })
-        });
-        if (charRes.ok) {
-          const charData = await charRes.json();
-          charId = charData.id;
+      // If user provided a new character file, upload it
+      if (!charId && charFile) {
+        const uploadedChar = await apiClient.characters.uploadImage(charFile, characterName || "Custom Avatar");
+        charId = uploadedChar.id;
+      }
+
+      // Create Project record
+      const project = await apiClient.projects.create({
+        title: title || "Untitled CGI Project",
+        generation_mode: mode,
+        character_id: charId || null,
+        prompt_instructions: prompt,
+        settings: {
+          environment,
+          outfit,
+          vehicle,
+          lighting,
+          weather,
+          camera_motion: cameraMotion,
+          animation_style: animationStyle,
+          aspect_ratio: aspectRatio,
+          resolution: resolution
         }
-      }
-
-      // Create Project
-      const projRes = await fetch(`${API_BASE_URL}/api/projects`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          title: title || "Untitled CGI Project",
-          generation_mode: mode,
-          character_id: charId || null,
-          prompt_instructions: prompt,
-          settings: {
-            environment,
-            outfit,
-            vehicle,
-            lighting,
-            weather,
-            camera_motion: cameraMotion,
-            animation_style: animationStyle,
-            aspect_ratio: aspectRatio,
-            resolution: resolution
-          }
-        })
       });
 
-      if (!projRes.ok) {
-        const errData = await projRes.json().catch(() => ({ detail: "Project creation failed" }));
-        throw new Error(errData.detail || "Failed to create project.");
+      // Attach Source Video if present
+      if (videoFile && (mode === "CHARACTER_REPLACEMENT" || mode === "FULL_CGI_RECREATION")) {
+        await apiClient.projects.uploadSourceVideo(project.id, videoFile);
       }
 
-      const projData = await projRes.json();
-
-      // Attach Source Video if mode requires reference video
-      if (referenceVideo && (mode === "CHARACTER_REPLACEMENT" || mode === "FULL_CGI_RECREATION")) {
-        await fetch(`${API_BASE_URL}/api/projects/${projData.id}/source-video?file_name=${encodeURIComponent(videoFile?.name || "reference.mp4")}&video_url=${encodeURIComponent(referenceVideo)}&duration_seconds=15.0&resolution=${encodeURIComponent(resolution)}`, {
-          method: "POST",
-          headers
-        }).catch(() => null);
-      }
-
-      // Start Generation Job
-      const genRes = await fetch(`${API_BASE_URL}/api/generations`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          project_id: projData.id,
-          provider_name: aiProvider
-        })
-      });
-
-      if (!genRes.ok) {
-        const genErr = await genRes.json().catch(() => ({ detail: "Generation start failed" }));
-        throw new Error(genErr.detail || "Failed to submit generation job.");
-      }
+      // Submit Generation Job
+      await apiClient.generations.start(project.id, aiProvider);
 
       router.push("/generations");
     } catch (err: any) {
@@ -354,6 +303,7 @@ function CreatorContent() {
                 onClick={() => {
                   setCharacterImage(null);
                   setSelectedCharId("");
+                  setCharFile(null);
                 }}
                 className="text-[11px] text-rose-400 hover:underline"
               >
@@ -433,11 +383,10 @@ function CreatorContent() {
             </label>
           )}
 
-          {videoMetadata && (
+          {videoFile && (
             <div className="flex items-center justify-between text-[11px] text-slate-300 bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
-              <span>Duration: ~{videoMetadata.duration}s</span>
-              <span>Resolution: {videoMetadata.resolution}</span>
-              <span>FPS: {videoMetadata.fps}</span>
+              <span className="truncate">{videoFile.name}</span>
+              <span>{(videoFile.size / 1024 / 1024).toFixed(1)} MB</span>
             </div>
           )}
         </Card>
@@ -508,9 +457,9 @@ function CreatorContent() {
           </Select>
 
           <Select label="AI Provider Engine" value={aiProvider} onChange={(e) => setAiProvider(e.target.value)}>
-            <option value="kling_ai">Kling AI Engine v1.5</option>
-            <option value="runway_gen3">Runway Gen-3 Alpha</option>
-            <option value="mock_engine">VYRON High-Speed Engine</option>
+            <option value="mock_engine">VYRON High-Speed Engine (Active)</option>
+            <option value="kling_ai">Kling AI Engine (Requires API Key)</option>
+            <option value="runway_gen3">Runway Gen-3 Alpha (Requires API Key)</option>
           </Select>
         </div>
 
@@ -539,7 +488,7 @@ function CreatorContent() {
         {/* SUBMIT BUTTON */}
         <div className="pt-4 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-xs text-slate-400">
-            Render Cost: <span className="font-bold text-amber-400">10 CR</span> &bull; Estimated Render Queue Time: ~20s
+            Render Cost: <span className="font-bold text-amber-400">10 CR</span> &bull; Estimated Queue Time: ~5s
           </div>
 
           <Button

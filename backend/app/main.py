@@ -1,10 +1,14 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.db.init_db import init_db
 from app.routers import auth, characters, projects, generations, credits, world_3d
 
+os.makedirs("static/uploads/characters", exist_ok=True)
+os.makedirs("static/uploads/videos", exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,6 +28,8 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Parse origins dynamically for CORS
 raw_origins = [

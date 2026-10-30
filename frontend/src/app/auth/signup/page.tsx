@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clapperboard, Lock, Mail, User as UserIcon, ArrowRight } from "lucide-react";
 import { Button, Card, Input } from "@/components/ui";
-import { API_BASE_URL } from "@/lib/api";
+import { apiClient, setToken } from "@/lib/api";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -26,20 +26,9 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, full_name: fullName }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ detail: "Registration failed" }));
-        throw new Error(data.detail || "Sign up failed.");
-      }
-
-      const data = await res.json();
+      const data = await apiClient.auth.register(email, password, fullName);
       if (data.access_token) {
-        localStorage.setItem("vyron_token", data.access_token);
+        setToken(data.access_token);
         router.push("/dashboard");
       } else {
         router.push("/auth/signin");
