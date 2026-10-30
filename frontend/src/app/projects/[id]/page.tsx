@@ -5,15 +5,15 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, StatusIndicator, Skeleton, BeforeAfterPlayer, ConfirmationModal, Toast } from "@/components/ui";
-import { Download, ArrowLeft, RefreshCw, Film, Trash2, Settings, User as UserIcon, Sparkles } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { Download, ArrowLeft, RefreshCw, Film, Trash2, Settings, User as UserIcon } from "lucide-react";
+import { apiClient, Project } from "@/lib/api";
 
 function VideoResultContent() {
   const params = useParams();
   const router = useRouter();
   const projectId = params?.id as string;
 
-  const [project, setProject] = useState<any>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -24,14 +24,10 @@ function VideoResultContent() {
 
     async function fetchProject() {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, { headers });
-        if (res.ok) {
-          setProject(await res.json());
-        }
+        const data = await apiClient.projects.get(projectId);
+        setProject(data);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to load project:", err);
       } finally {
         setLoading(false);
       }
@@ -40,22 +36,13 @@ function VideoResultContent() {
   }, [projectId]);
 
   const handleDelete = async () => {
+    if (!projectId) return;
     setDeleting(true);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
-      const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
-        method: "DELETE",
-        headers
-      });
-
-      if (res.ok) {
-        router.push("/projects");
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
+      await apiClient.projects.delete(projectId);
+      router.push("/projects");
+    } catch (err: any) {
+      setToastMessage({ type: "error", text: err.message || "Failed to delete project." });
       setDeleting(false);
     }
   };
@@ -82,7 +69,7 @@ function VideoResultContent() {
     );
   }
 
-  const completedGeneration = project.generations?.find((g: any) => g.status === "COMPLETED") || project.generations?.[0];
+  const completedGeneration = project.generations?.find((g) => g.status === "COMPLETED") || project.generations?.[0];
   const generatedVideo = completedGeneration?.generated_videos?.[0];
   const sourceVideo = project.source_videos?.[0];
 
@@ -141,7 +128,7 @@ function VideoResultContent() {
                 </h3>
                 <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
                   {project.status === "FAILED"
-                    ? "The AI render engine reported an error during video synthesis."
+                    ? completedGeneration?.error_message || "The AI render engine reported an error during video synthesis."
                     : "Your CGI video generation is processing in the queue center."}
                 </p>
                 {project.status !== "FAILED" && (

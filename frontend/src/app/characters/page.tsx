@@ -5,10 +5,10 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Skeleton, Modal, ConfirmationModal, Input, Toast } from "@/components/ui";
 import { Users, Plus, Sparkles, Image as ImageIcon, Trash2, Edit2, Eye } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { apiClient, Character } from "@/lib/api";
 
 export default function CharacterLibraryPage() {
-  const [characters, setCharacters] = useState<any[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Upload State
@@ -18,30 +18,26 @@ export default function CharacterLibraryPage() {
   const [filePreview, setFilePreview] = useState<string | null>(null);
 
   // Edit / Rename State
-  const [renameChar, setRenameChar] = useState<any | null>(null);
+  const [renameChar, setRenameChar] = useState<Character | null>(null);
   const [editName, setEditName] = useState("");
   const [renaming, setRenaming] = useState(false);
 
   // Delete Confirmation State
-  const [deleteChar, setDeleteChar] = useState<any | null>(null);
+  const [deleteChar, setDeleteChar] = useState<Character | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // Preview Modal State
-  const [previewChar, setPreviewChar] = useState<any | null>(null);
+  const [previewChar, setPreviewChar] = useState<Character | null>(null);
 
   // Toast
   const [toastMessage, setToastMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   const fetchCharacters = async () => {
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`${API_BASE_URL}/api/characters`, { headers });
-      if (res.ok) {
-        setCharacters(await res.json());
-      }
+      const data = await apiClient.characters.list();
+      setCharacters(data);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load characters:", err);
     } finally {
       setLoading(false);
     }
@@ -72,24 +68,10 @@ export default function CharacterLibraryPage() {
     setToastMessage(null);
 
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const imageUrl = filePreview || URL.createObjectURL(selectedFile);
-
-      const res = await fetch(`${API_BASE_URL}/api/characters`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          name: newCharName || selectedFile.name.split(".")[0],
-          image_url: imageUrl
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to save character avatar.");
-      }
+      await apiClient.characters.uploadImage(
+        selectedFile,
+        newCharName || selectedFile.name.split(".")[0]
+      );
 
       setNewCharName("");
       setSelectedFile(null);
@@ -108,23 +90,12 @@ export default function CharacterLibraryPage() {
 
     setRenaming(true);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const res = await fetch(`${API_BASE_URL}/api/characters/${renameChar.id}`, {
-        method: "PATCH",
-        headers,
-        body: JSON.stringify({ name: editName })
-      });
-
-      if (res.ok) {
-        setToastMessage({ type: "success", text: "Character renamed successfully." });
-        setRenameChar(null);
-        fetchCharacters();
-      }
-    } catch (err) {
-      console.error(err);
+      await apiClient.characters.update(renameChar.id, { name: editName });
+      setToastMessage({ type: "success", text: "Character renamed successfully." });
+      setRenameChar(null);
+      fetchCharacters();
+    } catch (err: any) {
+      setToastMessage({ type: "error", text: err.message || "Failed to rename character." });
     } finally {
       setRenaming(false);
     }
@@ -135,21 +106,12 @@ export default function CharacterLibraryPage() {
 
     setDeleting(true);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
-      const res = await fetch(`${API_BASE_URL}/api/characters/${deleteChar.id}`, {
-        method: "DELETE",
-        headers
-      });
-
-      if (res.ok) {
-        setToastMessage({ type: "success", text: "Character deleted successfully." });
-        setDeleteChar(null);
-        fetchCharacters();
-      }
-    } catch (err) {
-      console.error(err);
+      await apiClient.characters.delete(deleteChar.id);
+      setToastMessage({ type: "success", text: "Character deleted successfully." });
+      setDeleteChar(null);
+      fetchCharacters();
+    } catch (err: any) {
+      setToastMessage({ type: "error", text: err.message || "Failed to delete character." });
     } finally {
       setDeleting(false);
     }

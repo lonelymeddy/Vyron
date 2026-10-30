@@ -1,12 +1,20 @@
+import os
+import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import User, Project, SourceVideo, JobStatus
 from app.schemas import ProjectCreate, ProjectUpdate, ProjectResponse, SourceVideoResponse
 from app.auth import get_current_user
+from app.services.video_processor import video_processor
 
 router = APIRouter(prefix="/projects", tags=["Project Management"])
+
+ALLOWED_VIDEO_TYPES = {
+    "video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/mkv", "video/avi"
+}
+MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100MB
 
 @router.get("", response_model=List[ProjectResponse])
 def list_projects(
@@ -133,6 +141,56 @@ def attach_source_video(
         resolution=resolution,
         fps=fps,
         file_size=file_size
+    )
+    db.add(source_video)
+    db.commit()
+    db.refresh(source_video)
+    return source_video
+
+@router.post("/{project_id}/source-video/upload", response_model=SourceVideoResponse)
+async def upload_source_video(
+    project_id: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if file.content_type and file.content_type not in ALLOWED_VIDEO_TYPES and ext not in [".mp4", ".mov", ".webm", ".avi", ".mkv"]:
+        raise HTTPException(status_code=400, detail="Invalid video file format. Supported formats: MP4, MOV, WEBM.")
+
+    contents = await file.read()
+    if len(contents) > MAX_VIDEO_SIZE:
+        raise HTTPException(status_code=400, detail="Video file exceeds maximum allowed size of 100MB.")
+
+    upload_dir = os.path.join("static", "uploads", "videos")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    filename = f"{uuid.uuid4()}{ext or '.mp4'}"
+    filepath = os.path.join(upload_dir, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    meta = video_processor.extract_metadata(filepath)
+    video_url = f"/static/uploads/videos/{filename}"
+
+    source_video = SourceVideo(
+        project_id=project.id,
+        file_name=file.filename or filename,
+        video_url=video_url,
+        storage_path=filepath,
+        duration_seconds=meta.get("duration_seconds", 15.0),
+        resolution=meta.get("resolution", "1080p"),
+        fps=meta.get("fps", 30.0),
+        file_size=len(contents),
+        mime_type=file.content_type or "video/mp4"
     )
     db.add(source_video)
     db.commit()

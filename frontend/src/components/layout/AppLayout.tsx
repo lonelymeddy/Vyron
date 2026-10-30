@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Clapperboard,
   Sparkles,
@@ -15,10 +15,11 @@ import {
   Zap,
   LogOut,
   Menu,
-  X
+  X,
+  User as UserIcon
 } from "lucide-react";
 import { cn, Button } from "@/components/ui";
-import { API_BASE_URL } from "@/lib/api";
+import { apiClient, getToken, User } from "@/lib/api";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: Compass },
@@ -65,25 +66,57 @@ function NavLinks({ onItemClick }: { onItemClick?: () => void }) {
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [credits, setCredits] = useState<number>(100);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authenticating, setAuthenticating] = useState(true);
 
   useEffect(() => {
-    async function fetchCredits() {
+    async function initSession() {
+      const token = getToken();
+      if (!token) {
+        setAuthenticating(false);
+        router.push("/auth/signin");
+        return;
+      }
+
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch(`${API_BASE_URL}/api/credits/balance`, { headers }).catch(() => null);
-        if (res && res.ok) {
-          const data = await res.json();
-          setCredits(data.balance ?? 100);
+        const [user, creditData] = await Promise.all([
+          apiClient.auth.getMe(),
+          apiClient.credits.getBalance().catch(() => ({ balance: 100, updated_at: "" })),
+        ]);
+        setCurrentUser(user);
+        if (creditData && typeof creditData.balance === "number") {
+          setCredits(creditData.balance);
         }
       } catch (err) {
-        console.error("Failed to load credits", err);
+        console.error("Session verification failed", err);
+        router.push("/auth/signin");
+      } finally {
+        setAuthenticating(false);
       }
     }
-    fetchCredits();
-  }, []);
+
+    initSession();
+  }, [router]);
+
+  const handleSignOut = () => {
+    apiClient.auth.logout();
+  };
+
+  if (authenticating) {
+    return (
+      <div className="min-h-screen bg-[#07090e] text-slate-100 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center glow-violet mx-auto animate-bounce">
+            <Clapperboard className="w-5 h-5 text-white" />
+          </div>
+          <p className="text-xs text-slate-400 font-medium">Authenticating studio session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col md:flex-row antialiased selection:bg-violet-600 selection:text-white">
@@ -107,6 +140,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <NavLinks />
         </Suspense>
 
+        {currentUser && (
+          <div className="px-4 py-2 text-xs text-slate-400 flex items-center gap-2 border-t border-slate-800/60 mx-3 pt-3">
+            <UserIcon className="w-3.5 h-3.5 text-violet-400" />
+            <span className="truncate font-semibold text-slate-200">{currentUser.full_name || currentUser.email}</span>
+          </div>
+        )}
+
         <div className="p-4 m-3 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -126,12 +166,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="p-3 border-t border-slate-800/80">
-          <Link href="/auth/signin">
-            <Button variant="ghost" size="sm" className="w-full justify-start text-slate-400 hover:text-slate-200">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-          </Link>
+          <Button onClick={handleSignOut} variant="ghost" size="sm" className="w-full justify-start text-slate-400 hover:text-slate-200">
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
       </aside>
 
@@ -182,12 +220,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="pt-2">
-              <Link href="/auth/signin" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-slate-400">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
-                </Button>
-              </Link>
+              <Button onClick={handleSignOut} variant="ghost" size="sm" className="w-full justify-start text-slate-400">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>

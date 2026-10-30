@@ -17,34 +17,30 @@ import {
   Activity,
   ArrowUpRight
 } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { apiClient, Character, Project, Generation } from "@/lib/api";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [characters, setCharacters] = useState<any[]>([]);
-  const [generations, setGenerations] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [generations, setGenerations] = useState<Generation[]>([]);
   const [credits, setCredits] = useState<number>(100);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
         const [projRes, charRes, genRes, credRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/projects`, { headers }).catch(() => null),
-          fetch(`${API_BASE_URL}/api/characters`, { headers }).catch(() => null),
-          fetch(`${API_BASE_URL}/api/generations`, { headers }).catch(() => null),
-          fetch(`${API_BASE_URL}/api/credits/balance`, { headers }).catch(() => null)
+          apiClient.projects.list().catch(() => []),
+          apiClient.characters.list().catch(() => []),
+          apiClient.generations.list().catch(() => []),
+          apiClient.credits.getBalance().catch(() => ({ balance: 100, updated_at: "" })),
         ]);
 
-        if (projRes && projRes.ok) setProjects(await projRes.json());
-        if (charRes && charRes.ok) setCharacters(await charRes.json());
-        if (genRes && genRes.ok) setGenerations(await genRes.json());
-        if (credRes && credRes.ok) {
-          const credData = await credRes.json();
-          setCredits(credData.balance ?? 100);
+        setProjects(projRes);
+        setCharacters(charRes);
+        setGenerations(genRes);
+        if (credRes && typeof credRes.balance === "number") {
+          setCredits(credRes.balance);
         }
       } catch (err) {
         console.error("Dashboard data load error:", err);
@@ -89,7 +85,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* METRICS METRICS GRID */}
+        {/* METRICS GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="flex items-center gap-4 p-4">
             <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center shrink-0">

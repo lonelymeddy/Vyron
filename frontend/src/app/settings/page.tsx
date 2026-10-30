@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Input, Toast } from "@/components/ui";
 import { Settings, User as UserIcon, Shield, Database, Bell, Lock, CheckCircle2, Cloud, CreditCard } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { apiClient } from "@/lib/api";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"profile" | "account" | "security" | "notifications" | "privacy" | "storage">("profile");
@@ -12,6 +12,7 @@ export default function SettingsPage() {
   // User Profile State
   const [displayName, setDisplayName] = useState("VYRON Creator");
   const [email, setEmail] = useState("creator@vyron.ai");
+  const [credits, setCredits] = useState(100);
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Security State
@@ -32,18 +33,17 @@ export default function SettingsPage() {
   useEffect(() => {
     async function loadUser() {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
-        if (!token) return;
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const user = await res.json();
-          if (user.full_name) setDisplayName(user.full_name);
-          if (user.email) setEmail(user.email);
+        const [user, creditData] = await Promise.all([
+          apiClient.auth.getMe(),
+          apiClient.credits.getBalance().catch(() => ({ balance: 100, updated_at: "" })),
+        ]);
+        if (user.full_name) setDisplayName(user.full_name);
+        if (user.email) setEmail(user.email);
+        if (creditData && typeof creditData.balance === "number") {
+          setCredits(creditData.balance);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching user details in settings:", err);
       }
     }
     loadUser();
@@ -55,7 +55,7 @@ export default function SettingsPage() {
     setTimeout(() => {
       setSavingProfile(false);
       setToastMessage({ type: "success", text: "Profile details updated successfully." });
-    }, 600);
+    }, 400);
   };
 
   const handleSaveSecurity = (e: React.FormEvent) => {
@@ -70,7 +70,7 @@ export default function SettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setToastMessage({ type: "success", text: "Password security updated successfully." });
-    }, 600);
+    }, 400);
   };
 
   return (
@@ -204,10 +204,10 @@ export default function SettingsPage() {
             <div className="p-4 bg-[#0a0e17] rounded-xl border border-slate-800 space-y-2">
               <div className="flex justify-between text-xs text-slate-300 font-semibold">
                 <span>Monthly GPU Render Credits</span>
-                <span className="text-amber-400">100 / 100 CR</span>
+                <span className="text-amber-400">{credits} CR</span>
               </div>
               <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div className="bg-amber-400 h-full w-[100%]" />
+                <div className="bg-amber-400 h-full" style={{ width: `${Math.min(100, Math.max(10, credits))}%` }} />
               </div>
               <p className="text-[11px] text-slate-500">Credits auto-renew on the 1st of every calendar month.</p>
             </div>

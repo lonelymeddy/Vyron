@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clapperboard, Lock, Mail, ArrowRight } from "lucide-react";
 import { Button, Card, Input } from "@/components/ui";
-import { API_BASE_URL } from "@/lib/api";
+import { apiClient, setToken } from "@/lib/api";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -25,26 +25,15 @@ export default function SignInPage() {
     setError("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ detail: "Invalid email or password" }));
-        throw new Error(data.detail || "Authentication failed.");
-      }
-
-      const data = await res.json();
+      const data = await apiClient.auth.login(email, password);
       if (data.access_token) {
-        localStorage.setItem("vyron_token", data.access_token);
+        setToken(data.access_token);
         router.push("/dashboard");
       } else {
         throw new Error("Token missing from server response.");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to sign in. Check backend server connection.");
+      setError(err.message || "Failed to sign in. Check email and password.");
     } finally {
       setLoading(false);
     }
