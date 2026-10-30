@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, Badge, Input, Textarea, Select, Toast } from "@/components/ui";
 import {
   Sparkles,
   Upload,
@@ -12,38 +12,103 @@ import {
   Film,
   Wand2,
   CheckCircle2,
-  AlertCircle,
-  X
+  Sun,
+  Camera,
+  Layers,
+  Shirt,
+  Car,
+  CloudRain,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 type GenerationMode = "CHARACTER_REPLACEMENT" | "FULL_CGI_RECREATION" | "ORIGINAL_CGI_CREATION";
 
-export default function CreateVideoPage() {
+function CreatorContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialCharId = searchParams.get("character_id") || "";
 
   const [mode, setMode] = useState<GenerationMode>("CHARACTER_REPLACEMENT");
-  const [title, setTitle] = useState("My Cinematic Project");
+  const [title, setTitle] = useState("My Cinematic CGI Video");
+
+  // Characters from Library
+  const [savedCharacters, setSavedCharacters] = useState<any[]>([]);
+  const [selectedCharId, setSelectedCharId] = useState<string>(initialCharId);
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const [characterName, setCharacterName] = useState("");
+
+  // Reference Video
   const [referenceVideo, setReferenceVideo] = useState<string | null>(null);
-  const [videoMetadata, setVideoMetadata] = useState<{ duration: number; resolution: string } | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoMetadata, setVideoMetadata] = useState<{ duration: number; resolution: string; fps: number } | null>(null);
+
+  // Creative Prompt
   const [prompt, setPrompt] = useState("");
 
+  // Production Settings
+  const [environment, setEnvironment] = useState("erangel_pubg");
+  const [outfit, setOutfit] = useState("tactical_black");
+  const [vehicle, setVehicle] = useState("dacia_sedan");
+  const [lighting, setLighting] = useState("sunset_dramatic");
+  const [weather, setWeather] = useState("clear");
+  const [cameraMotion, setCameraMotion] = useState("cinematic_orbit");
+  const [animationStyle, setAnimationStyle] = useState("hyper_realistic");
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [resolution, setResolution] = useState("1080p");
-  const [visualStyle, setVisualStyle] = useState("pubg_cinematic");
+  const [aiProvider, setAiProvider] = useState("kling_ai");
 
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+
+  useEffect(() => {
+    async function loadCharacters() {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch("http://localhost:8000/api/characters", { headers });
+        if (res.ok) {
+          const chars = await res.json();
+          setSavedCharacters(chars);
+          if (initialCharId) {
+            const match = chars.find((c: any) => c.id === initialCharId);
+            if (match) {
+              setSelectedCharId(match.id);
+              setCharacterImage(match.image_url);
+              setCharacterName(match.name);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load character library", err);
+      }
+    }
+    loadCharacters();
+  }, [initialCharId]);
+
+  const handleSelectSavedCharacter = (charId: string) => {
+    setSelectedCharId(charId);
+    if (!charId) {
+      setCharacterImage(null);
+      setCharacterName("");
+      return;
+    }
+    const match = savedCharacters.find((c) => c.id === charId);
+    if (match) {
+      setCharacterImage(match.image_url);
+      setCharacterName(match.name);
+    }
+  };
 
   const handleCharacterUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
-        setError("Please upload a valid image file (PNG, JPG, WEBP).");
+        setToastMessage({ type: "error", text: "Please upload a valid character image file (PNG, JPG, WEBP)." });
         return;
       }
-      setError(null);
+      setSelectedCharId("");
       const url = URL.createObjectURL(file);
       setCharacterImage(url);
       if (!characterName) setCharacterName(file.name.split(".")[0]);
@@ -54,319 +119,449 @@ export default function CreateVideoPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith("video/")) {
-        setError("Please upload a valid video file (MP4, MOV, WEBM).");
+        setToastMessage({ type: "error", text: "Please upload a valid reference video file (MP4, MOV, WEBM)." });
         return;
       }
-      setError(null);
+      setVideoFile(file);
       const url = URL.createObjectURL(file);
       setReferenceVideo(url);
-      setVideoMetadata({ duration: 15, resolution: "1080p" });
+      setVideoMetadata({ duration: 15, resolution: "1080p", fps: 30 });
     }
   };
 
   const handleSubmit = async () => {
     if (!characterImage) {
-      setError("A character reference image is required to generate cinematic 3D videos.");
+      setToastMessage({ type: "error", text: "A character reference photo or library character is required." });
       return;
     }
 
     if ((mode === "CHARACTER_REPLACEMENT" || mode === "FULL_CGI_RECREATION") && !referenceVideo) {
-      setError(`Mode '${mode.replace(/_/g, " ")}' requires a reference video.`);
+      setToastMessage({
+        type: "error",
+        text: `Mode '${mode.replace(/_/g, " ")}' requires a reference video upload.`
+      });
       return;
     }
 
     setSubmitting(true);
-    setError(null);
+    setToastMessage(null);
 
     try {
-      const token = localStorage.getItem("vyron_token");
+      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const charRes = await fetch("http://localhost:8000/api/characters", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          name: characterName || "Custom Character",
-          image_url: characterImage
-        })
-      });
-      const charData = charRes.ok ? await charRes.json() : null;
+      let charId = selectedCharId;
 
+      // If user uploaded a brand new character image, create character record first
+      if (!charId && characterImage) {
+        const charRes = await fetch("http://localhost:8000/api/characters", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            name: characterName || "Custom Avatar",
+            image_url: characterImage
+          })
+        });
+        if (charRes.ok) {
+          const charData = await charRes.json();
+          charId = charData.id;
+        }
+      }
+
+      // Create Project
       const projRes = await fetch("http://localhost:8000/api/projects", {
         method: "POST",
         headers,
         body: JSON.stringify({
           title: title || "Untitled CGI Project",
           generation_mode: mode,
-          character_id: charData?.id,
+          character_id: charId || null,
           prompt_instructions: prompt,
           settings: {
+            environment,
+            outfit,
+            vehicle,
+            lighting,
+            weather,
+            camera_motion: cameraMotion,
+            animation_style: animationStyle,
             aspect_ratio: aspectRatio,
-            resolution: resolution,
-            visual_style: visualStyle
+            resolution: resolution
           }
         })
       });
 
       if (!projRes.ok) {
-        throw new Error("Failed to create project record.");
+        const errData = await projRes.json().catch(() => ({ detail: "Project creation failed" }));
+        throw new Error(errData.detail || "Failed to create project.");
       }
 
       const projData = await projRes.json();
 
+      // Attach Source Video if mode requires reference video
+      if (referenceVideo && (mode === "CHARACTER_REPLACEMENT" || mode === "FULL_CGI_RECREATION")) {
+        await fetch(`http://localhost:8000/api/projects/${projData.id}/source-video?file_name=${encodeURIComponent(videoFile?.name || "reference.mp4")}&video_url=${encodeURIComponent(referenceVideo)}&duration_seconds=15.0&resolution=${encodeURIComponent(resolution)}`, {
+          method: "POST",
+          headers
+        }).catch(() => null);
+      }
+
+      // Start Generation Job
       const genRes = await fetch("http://localhost:8000/api/generations", {
         method: "POST",
         headers,
         body: JSON.stringify({
           project_id: projData.id,
-          provider_name: "mock_engine"
+          provider_name: aiProvider
         })
       });
 
       if (!genRes.ok) {
-        const genErr = await genRes.json();
-        throw new Error(genErr.detail || "Failed to start AI generation job.");
+        const genErr = await genRes.json().catch(() => ({ detail: "Generation start failed" }));
+        throw new Error(genErr.detail || "Failed to submit generation job.");
       }
 
-      router.push(`/generations`);
+      router.push("/generations");
     } catch (err: any) {
-      setError(err.message || "Error submitting video generation job.");
+      setToastMessage({ type: "error", text: err.message || "Error submitting video generation job." });
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <AppLayout>
-      <div className="space-y-8 max-w-5xl mx-auto">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-violet-400" />
-            AI Video Creator Studio
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Configure character input, video references, and generation parameters for high-end cinematic 3D output.
-          </p>
+    <div className="space-y-8 max-w-5xl mx-auto">
+      {/* HEADER */}
+      <div>
+        <div className="flex items-center gap-2">
+          <Badge variant="purple">STUDIO CREATOR</Badge>
+          <Badge variant="cyan">3 CREATION MODES</Badge>
         </div>
+        <h1 className="text-2xl font-extrabold text-white mt-2 flex items-center gap-2">
+          <Sparkles className="w-6 h-6 text-violet-400" />
+          AI Video Creator Studio
+        </h1>
+        <p className="text-slate-400 text-xs md:text-sm mt-1 leading-relaxed">
+          Select a creation mode, upload or choose character references, provide natural language instructions, and configure cinematic CGI render settings.
+        </p>
+      </div>
 
-        {error && (
-          <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span>{error}</span>
-            </div>
-            <button onClick={() => setError(null)}>
-              <X className="w-4 h-4 hover:text-white" />
-            </button>
-          </div>
-        )}
+      {toastMessage && (
+        <Toast
+          type={toastMessage.type}
+          message={toastMessage.text}
+          onClose={() => setToastMessage(null)}
+        />
+      )}
 
-        <div className="space-y-3">
-          <label className="text-sm font-semibold text-slate-200">1. Select Generation Mode</label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card
-              onClick={() => setMode("CHARACTER_REPLACEMENT")}
-              className={`cursor-pointer transition-all ${
-                mode === "CHARACTER_REPLACEMENT"
-                  ? "border-violet-500 bg-violet-950/20 glow-violet"
-                  : "border-slate-800 hover:border-slate-700"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Video className="w-5 h-5 text-violet-400" />
-                {mode === "CHARACTER_REPLACEMENT" && <CheckCircle2 className="w-4 h-4 text-violet-400" />}
-              </div>
-              <h3 className="font-bold text-slate-100 text-sm">Mode 1: Character Replacement</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Replace original video avatar with your custom character while maintaining original movement.
-              </p>
-            </Card>
+      {/* PROJECT TITLE */}
+      <Card className="p-4">
+        <Input
+          label="Project Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Erangel Tactical Cyber Heist"
+        />
+      </Card>
 
-            <Card
-              onClick={() => setMode("FULL_CGI_RECREATION")}
-              className={`cursor-pointer transition-all ${
-                mode === "FULL_CGI_RECREATION"
-                  ? "border-indigo-500 bg-indigo-950/20 glow-violet"
-                  : "border-slate-800 hover:border-slate-700"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Film className="w-5 h-5 text-indigo-400" />
-                {mode === "FULL_CGI_RECREATION" && <CheckCircle2 className="w-4 h-4 text-indigo-400" />}
-              </div>
-              <h3 className="font-bold text-slate-100 text-sm">Mode 2: Full CGI Recreation</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Recreate entire scenes, camera angles and lighting in PUBG-inspired 3D virtual environments.
-              </p>
-            </Card>
-
-            <Card
-              onClick={() => setMode("ORIGINAL_CGI_CREATION")}
-              className={`cursor-pointer transition-all ${
-                mode === "ORIGINAL_CGI_CREATION"
-                  ? "border-cyan-500 bg-cyan-950/20 glow-violet"
-                  : "border-slate-800 hover:border-slate-700"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Wand2 className="w-5 h-5 text-cyan-400" />
-                {mode === "ORIGINAL_CGI_CREATION" && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
-              </div>
-              <h3 className="font-bold text-slate-100 text-sm">Mode 3: Original CGI Creation</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Generate brand new cinematic 3D CGI video directly from text instructions and assets.
-              </p>
-            </Card>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="space-y-4">
+      {/* CREATION MODES SELECTION */}
+      <div className="space-y-3">
+        <label className="text-xs font-bold text-slate-200 uppercase tracking-wider block">
+          1. Select Generation Mode
+        </label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card
+            onClick={() => setMode("CHARACTER_REPLACEMENT")}
+            className={`cursor-pointer transition-all p-5 space-y-3 ${
+              mode === "CHARACTER_REPLACEMENT"
+                ? "border-violet-500 bg-violet-950/20 glow-violet"
+                : "border-slate-800 hover:border-slate-700"
+            }`}
+          >
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-200 flex items-center gap-2">
-                <UserIcon className="w-4 h-4 text-violet-400" />
-                Character Reference Image *
-              </label>
-              {characterImage && (
-                <button
-                  onClick={() => setCharacterImage(null)}
-                  className="text-[11px] text-rose-400 hover:underline"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-
-            {characterImage ? (
-              <div className="relative rounded-lg overflow-hidden border border-slate-700 h-48 bg-slate-900 flex items-center justify-center">
-                <img src={characterImage} alt="Character Preview" className="h-full object-contain" />
+              <div className="w-9 h-9 rounded-lg bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20">
+                <Video className="w-5 h-5" />
               </div>
-            ) : (
-              <label className="border-2 border-dashed border-slate-800 hover:border-violet-500/50 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors h-48 bg-slate-900/40">
-                <Upload className="w-8 h-8 text-slate-500 mb-2" />
-                <span className="text-xs font-medium text-slate-300">Click to upload character photo</span>
-                <span className="text-[10px] text-slate-500 mt-1">Supports PNG, JPG, WEBP (Max 20MB)</span>
-                <input type="file" accept="image/*" onChange={handleCharacterUpload} className="hidden" />
-              </label>
-            )}
-
+              {mode === "CHARACTER_REPLACEMENT" && <CheckCircle2 className="w-5 h-5 text-violet-400" />}
+            </div>
             <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Character Name</label>
-              <input
-                type="text"
-                value={characterName}
-                onChange={(e) => setCharacterName(e.target.value)}
-                placeholder="e.g. Ghost Operator"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
-              />
+              <h3 className="font-bold text-slate-100 text-sm">Mode 1: Character Replacement</h3>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                Replace original video avatar with your custom character while preserving exact motion, action physics, and timing.
+              </p>
             </div>
           </Card>
 
-          <Card className={`space-y-4 ${mode === "ORIGINAL_CGI_CREATION" ? "opacity-40 pointer-events-none" : ""}`}>
+          <Card
+            onClick={() => setMode("FULL_CGI_RECREATION")}
+            className={`cursor-pointer transition-all p-5 space-y-3 ${
+              mode === "FULL_CGI_RECREATION"
+                ? "border-indigo-500 bg-indigo-950/20 glow-violet"
+                : "border-slate-800 hover:border-slate-700"
+            }`}
+          >
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-200 flex items-center gap-2">
-                <Video className="w-4 h-4 text-indigo-400" />
-                Reference CGI / Gameplay Video {mode !== "ORIGINAL_CGI_CREATION" && "*"}
-              </label>
-              {referenceVideo && (
-                <button
-                  onClick={() => setReferenceVideo(null)}
-                  className="text-[11px] text-rose-400 hover:underline"
-                >
-                  Remove
-                </button>
-              )}
+              <div className="w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+                <Film className="w-5 h-5" />
+              </div>
+              {mode === "FULL_CGI_RECREATION" && <CheckCircle2 className="w-5 h-5 text-indigo-400" />}
             </div>
+            <div>
+              <h3 className="font-bold text-slate-100 text-sm">Mode 2: Full CGI Recreation</h3>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                Recreate entire reference video scenes, camera moves, lighting, outfits, and environments in PUBG-inspired 3D CGI.
+              </p>
+            </div>
+          </Card>
 
-            {referenceVideo ? (
-              <div className="relative rounded-lg overflow-hidden border border-slate-700 h-48 bg-slate-900 flex items-center justify-center">
-                <video src={referenceVideo} controls className="h-full object-contain" />
+          <Card
+            onClick={() => setMode("ORIGINAL_CGI_CREATION")}
+            className={`cursor-pointer transition-all p-5 space-y-3 ${
+              mode === "ORIGINAL_CGI_CREATION"
+                ? "border-cyan-500 bg-cyan-950/20 glow-violet"
+                : "border-slate-800 hover:border-slate-700"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
+                <Wand2 className="w-5 h-5" />
               </div>
-            ) : (
-              <label className="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors h-48 bg-slate-900/40">
-                <Film className="w-8 h-8 text-slate-500 mb-2" />
-                <span className="text-xs font-medium text-slate-300">Click to upload reference video</span>
-                <span className="text-[10px] text-slate-500 mt-1">MP4, MOV, WEBM (Up to 1080p, max 100MB)</span>
-                <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
-              </label>
-            )}
-
-            {videoMetadata && (
-              <div className="flex items-center justify-between text-[11px] text-slate-400 bg-slate-900 p-2 rounded border border-slate-800">
-                <span>Duration: ~{videoMetadata.duration}s</span>
-                <span>Resolution: {videoMetadata.resolution}</span>
-              </div>
-            )}
+              {mode === "ORIGINAL_CGI_CREATION" && <CheckCircle2 className="w-5 h-5 text-cyan-400" />}
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-100 text-sm">Mode 3: Original CGI Creation</h3>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                Generate brand new cinematic 3D CGI video directly from natural language prompts without requiring a reference video.
+              </p>
+            </div>
           </Card>
         </div>
+      </div>
 
-        <Card className="space-y-3">
-          <label className="text-xs font-semibold text-slate-200 flex items-center gap-2">
-            <Wand2 className="w-4 h-4 text-cyan-400" />
-            Natural-Language Creative Instructions
-          </label>
-          <textarea
-            rows={3}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Place my character inside a cinematic PUBG-inspired city environment, wearing a black tactical suit, holding a sniper rifle at sunset..."
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
+      {/* INPUT ASSETS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* CHARACTER SELECTION / UPLOAD */}
+        <Card className="space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
+              <UserIcon className="w-4 h-4 text-violet-400" />
+              2. Character Reference Input *
+            </label>
+            {characterImage && (
+              <button
+                onClick={() => {
+                  setCharacterImage(null);
+                  setSelectedCharId("");
+                }}
+                className="text-[11px] text-rose-400 hover:underline"
+              >
+                Clear Input
+              </button>
+            )}
+          </div>
+
+          {savedCharacters.length > 0 && (
+            <Select
+              label="Choose from Saved Library"
+              value={selectedCharId}
+              onChange={(e) => handleSelectSavedCharacter(e.target.value)}
+            >
+              <option value="">-- Upload New Character Photo Below --</option>
+              {savedCharacters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          )}
+
+          {characterImage ? (
+            <div className="relative rounded-xl overflow-hidden border border-slate-700 h-52 bg-slate-950 flex items-center justify-center">
+              <img src={characterImage} alt="Character Preview" className="h-full object-contain" />
+            </div>
+          ) : (
+            <label className="border-2 border-dashed border-slate-800 hover:border-violet-500/50 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors h-52 bg-slate-900/40">
+              <Upload className="w-8 h-8 text-slate-500 mb-2" />
+              <span className="text-xs font-semibold text-slate-300">Click to upload character image</span>
+              <span className="text-[10px] text-slate-500 mt-1">PNG, JPG, WEBP (Clear face/body photo)</span>
+              <input type="file" accept="image/*" onChange={handleCharacterUpload} className="hidden" />
+            </label>
+          )}
+
+          <Input
+            label="Character Name"
+            value={characterName}
+            onChange={(e) => setCharacterName(e.target.value)}
+            placeholder="e.g. Tactical Ghost Operative"
           />
         </Card>
 
-        <Card className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="grid grid-cols-3 gap-4 w-full md:w-auto">
-            <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Aspect Ratio</label>
-              <select
-                value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-200"
+        {/* REFERENCE VIDEO UPLOAD */}
+        <Card className={`space-y-4 ${mode === "ORIGINAL_CGI_CREATION" ? "opacity-40 pointer-events-none" : ""}`}>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
+              <Video className="w-4 h-4 text-indigo-400" />
+              3. Reference Video Input {mode !== "ORIGINAL_CGI_CREATION" && "*"}
+            </label>
+            {referenceVideo && (
+              <button
+                onClick={() => {
+                  setReferenceVideo(null);
+                  setVideoFile(null);
+                }}
+                className="text-[11px] text-rose-400 hover:underline"
               >
-                <option value="16:9">16:9 (Landscape)</option>
-                <option value="9:16">9:16 (Portrait Shorts)</option>
-                <option value="1:1">1:1 (Square)</option>
-              </select>
-            </div>
+                Clear Video
+              </button>
+            )}
+          </div>
 
-            <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Resolution</label>
-              <select
-                value={resolution}
-                onChange={(e) => setResolution(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-200"
-              >
-                <option value="1080p">1080p FHD</option>
-                <option value="4K">4K UHD Engine</option>
-              </select>
+          {referenceVideo ? (
+            <div className="relative rounded-xl overflow-hidden border border-slate-700 h-52 bg-slate-950 flex items-center justify-center">
+              <video src={referenceVideo} controls className="h-full object-contain" />
             </div>
+          ) : (
+            <label className="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors h-52 bg-slate-900/40">
+              <Film className="w-8 h-8 text-slate-500 mb-2" />
+              <span className="text-xs font-semibold text-slate-300">
+                {mode === "ORIGINAL_CGI_CREATION" ? "Not required for Mode 3" : "Click to upload reference video"}
+              </span>
+              <span className="text-[10px] text-slate-500 mt-1">MP4, MOV, WEBM (Up to 1080p, 60fps)</span>
+              <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" disabled={mode === "ORIGINAL_CGI_CREATION"} />
+            </label>
+          )}
 
-            <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Visual Style</label>
-              <select
-                value={visualStyle}
-                onChange={(e) => setVisualStyle(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-200"
-              >
-                <option value="pubg_cinematic">PUBG Realistic CGI</option>
-                <option value="cyberpunk">Cyberpunk Neon</option>
-                <option value="photorealistic">Photorealistic</option>
-              </select>
+          {videoMetadata && (
+            <div className="flex items-center justify-between text-[11px] text-slate-300 bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+              <span>Duration: ~{videoMetadata.duration}s</span>
+              <span>Resolution: {videoMetadata.resolution}</span>
+              <span>FPS: {videoMetadata.fps}</span>
             </div>
+          )}
+        </Card>
+      </div>
+
+      {/* CREATIVE PROMPT INSTRUCTIONS */}
+      <Card className="space-y-3">
+        <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
+          <Wand2 className="w-4 h-4 text-cyan-400" />
+          4. Creative Prompt & Scene Instructions
+        </label>
+        <Textarea
+          rows={3}
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Describe scene details, camera actions, environment backdrop, lighting conditions, and character gear (e.g. Place operative in Erangel city ruins at dusk, wielding a sniper rifle with cinematic camera orbit...)"
+        />
+      </Card>
+
+      {/* PRODUCTION & CGI CONTROLS */}
+      <Card className="space-y-6">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-violet-400" />
+            <h3 className="text-sm font-bold text-slate-100">Production & CGI Render Parameters</h3>
+          </div>
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="text-xs text-violet-400 hover:underline flex items-center font-medium"
+          >
+            {showAdvanced ? "Hide Advanced Settings" : "Show Advanced Settings"}
+            {showAdvanced ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Select label="Environment / Location" value={environment} onChange={(e) => setEnvironment(e.target.value)}>
+            <option value="erangel_pubg">Erangel Military Base (PUBG)</option>
+            <option value="miramar_desert">Miramar Desert Ruins</option>
+            <option value="vikendi_snow">Vikendi Snowy Compound</option>
+            <option value="cyberpunk_city">Cyberpunk Neon City</option>
+            <option value="futuristic_hangar">Futuristic Sci-Fi Hangar</option>
+          </Select>
+
+          <Select label="Lighting Preset" value={lighting} onChange={(e) => setLighting(e.target.value)}>
+            <option value="sunset_dramatic">Golden Hour Sunset</option>
+            <option value="cinematic_night">Night Studio Key Light</option>
+            <option value="overcast_stormy">Overcast Stormy Daylight</option>
+            <option value="cyberpunk_neon">Cyberpunk Dual Neon</option>
+          </Select>
+
+          <Select label="Camera Motion" value={cameraMotion} onChange={(e) => setCameraMotion(e.target.value)}>
+            <option value="cinematic_orbit">Cinematic 360 Orbit</option>
+            <option value="dramatic_push_in">Dramatic Push-In Zoom</option>
+            <option value="tracking_shot">Low-Angle Action Tracking</option>
+            <option value="static_tripod">Static Studio Lens</option>
+          </Select>
+
+          <Select label="Aspect Ratio" value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}>
+            <option value="16:9">16:9 Landscape (Widescreen)</option>
+            <option value="9:16">9:16 Portrait (Shorts & Reels)</option>
+            <option value="1:1">1:1 Square (Social)</option>
+          </Select>
+
+          <Select label="Resolution" value={resolution} onChange={(e) => setResolution(e.target.value)}>
+            <option value="1080p">1080p Full HD</option>
+            <option value="4K">4K Ultra HD CGI Engine</option>
+          </Select>
+
+          <Select label="AI Provider Engine" value={aiProvider} onChange={(e) => setAiProvider(e.target.value)}>
+            <option value="kling_ai">Kling AI Engine v1.5</option>
+            <option value="runway_gen3">Runway Gen-3 Alpha</option>
+            <option value="mock_engine">VYRON High-Speed Engine</option>
+          </Select>
+        </div>
+
+        {showAdvanced && (
+          <div className="pt-4 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Select label="Outfit / Armor Customization" value={outfit} onChange={(e) => setOutfit(e.target.value)}>
+              <option value="tactical_black">Level 3 Tactical Black Suit</option>
+              <option value="desert_ghillie">Ghillie Sniper Camo</option>
+              <option value="cyber_exosuit">Cybernetic Exosuit</option>
+            </Select>
+
+            <Select label="Vehicle Props" value={vehicle} onChange={(e) => setVehicle(e.target.value)}>
+              <option value="dacia_sedan">Armored Buggy / Dacia</option>
+              <option value="hover_bike">Futuristic Hoverbike</option>
+              <option value="none">No Vehicle Props</option>
+            </Select>
+
+            <Select label="Weather Effects" value={weather} onChange={(e) => setWeather(e.target.value)}>
+              <option value="clear">Clear Skies</option>
+              <option value="heavy_rain">Heavy Rain & Wet Surfaces</option>
+              <option value="foggy">Dense Fog / Mist</option>
+            </Select>
+          </div>
+        )}
+
+        {/* SUBMIT BUTTON */}
+        <div className="pt-4 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-xs text-slate-400">
+            Render Cost: <span className="font-bold text-amber-400">10 CR</span> &bull; Estimated Render Queue Time: ~20s
           </div>
 
           <Button
             size="lg"
             isLoading={submitting}
             onClick={handleSubmit}
-            className="w-full md:w-auto px-8"
+            className="w-full md:w-auto px-8 shadow-xl"
           >
             <Sparkles className="w-5 h-5 mr-2" />
             Generate Video (10 CR)
           </Button>
-        </Card>
-      </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+export default function CreateVideoPage() {
+  return (
+    <AppLayout>
+      <Suspense fallback={<div className="p-6 text-slate-400">Loading Creator Studio...</div>}>
+        <CreatorContent />
+      </Suspense>
     </AppLayout>
   );
 }

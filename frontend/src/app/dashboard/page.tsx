@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Button, Card, Badge, Skeleton } from "@/components/ui";
+import { Button, Card, Badge, Skeleton, StatusIndicator } from "@/components/ui";
 import {
   Sparkles,
   Plus,
@@ -13,32 +13,37 @@ import {
   Coins,
   ChevronRight,
   Play,
-  Film
+  Film,
+  Activity,
+  ArrowUpRight
 } from "lucide-react";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
   const [characters, setCharacters] = useState<any[]>([]);
+  const [generations, setGenerations] = useState<any[]>([]);
   const [credits, setCredits] = useState<number>(100);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const token = localStorage.getItem("vyron_token");
+        const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const [projRes, charRes, credRes] = await Promise.all([
+        const [projRes, charRes, genRes, credRes] = await Promise.all([
           fetch("http://localhost:8000/api/projects", { headers }).catch(() => null),
           fetch("http://localhost:8000/api/characters", { headers }).catch(() => null),
+          fetch("http://localhost:8000/api/generations", { headers }).catch(() => null),
           fetch("http://localhost:8000/api/credits/balance", { headers }).catch(() => null)
         ]);
 
         if (projRes && projRes.ok) setProjects(await projRes.json());
         if (charRes && charRes.ok) setCharacters(await charRes.json());
+        if (genRes && genRes.ok) setGenerations(await genRes.json());
         if (credRes && credRes.ok) {
           const credData = await credRes.json();
-          setCredits(credData.balance);
+          setCredits(credData.balance ?? 100);
         }
       } catch (err) {
         console.error("Dashboard data load error:", err);
@@ -53,17 +58,20 @@ export default function DashboardPage() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-950/60 via-indigo-950/40 to-slate-900 border border-violet-500/30 p-8 glow-violet">
-          <div className="relative z-10 max-w-2xl">
-            <Badge variant="purple" className="mb-3">
-              <Sparkles className="w-3.5 h-3.5 mr-1" />
-              VYRON AI STUDIO ENGINE v1.0
+        {/* WELCOME BANNER */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-950/70 via-indigo-950/50 to-[#0c1017] border border-violet-500/30 p-6 md:p-8 glow-violet shadow-2xl">
+          <div className="relative z-10 max-w-2xl space-y-3">
+            <Badge variant="purple" className="py-1 px-3">
+              <Sparkles className="w-3.5 h-3.5 mr-1.5 text-violet-400" />
+              CREATE BEYOND REALITY &bull; STUDIO DASHBOARD
             </Badge>
-            <h1 className="text-3xl font-extrabold text-white">Welcome to VYRON AI</h1>
-            <p className="mt-2 text-slate-300 text-sm leading-relaxed">
-              Upload character references and generate high-end cinematic 3D videos with AI character replacement, full CGI recreations, and PUBG-inspired virtual worlds.
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+              Welcome to VYRON AI Studio
+            </h1>
+            <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
+              Upload character reference images and render cinematic 3D CGI videos with natural language controls, AI character replacement, and PUBG-inspired environments.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="pt-2 flex flex-wrap gap-3">
               <Link href="/create">
                 <Button size="md">
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -73,36 +81,37 @@ export default function DashboardPage() {
               <Link href="/characters">
                 <Button variant="outline" size="md">
                   <Users className="w-4 h-4 mr-2" />
-                  Manage Characters
+                  Manage Character Library
                 </Button>
               </Link>
             </div>
           </div>
         </div>
 
+        {/* METRICS METRICS GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
+          <Card className="flex items-center gap-4 p-4">
+            <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center shrink-0">
               <FolderKanban className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-medium">Total Projects</p>
+              <p className="text-xs text-slate-400 font-medium">Saved Projects</p>
               <p className="text-2xl font-bold text-white">{projects.length}</p>
             </div>
           </Card>
 
-          <Card className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+          <Card className="flex items-center gap-4 p-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-medium">Character Models</p>
+              <p className="text-xs text-slate-400 font-medium">Character Avatars</p>
               <p className="text-2xl font-bold text-white">{characters.length}</p>
             </div>
           </Card>
 
-          <Card className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+          <Card className="flex items-center gap-4 p-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
               <Coins className="w-6 h-6" />
             </div>
             <div>
@@ -111,26 +120,28 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+          <Card className="flex items-center gap-4 p-4">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
               <Video className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-medium">CGI Render Engine</p>
+              <p className="text-xs text-slate-400 font-medium">Render Engine Status</p>
               <p className="text-xs font-bold text-emerald-400">Online & Ready</p>
             </div>
           </Card>
         </div>
 
+        {/* RECENT PROJECTS & GENERATION ACTIVITY */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* RECENT PROJECTS */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <FolderKanban className="w-5 h-5 text-violet-400" />
                 Recent Projects
               </h2>
-              <Link href="/projects" className="text-xs text-violet-400 hover:underline flex items-center">
-                View All <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+              <Link href="/projects" className="text-xs text-violet-400 hover:underline flex items-center font-medium">
+                View All Projects <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
               </Link>
             </div>
 
@@ -142,9 +153,9 @@ export default function DashboardPage() {
             ) : projects.length === 0 ? (
               <Card className="text-center py-12 border-dashed border-slate-800">
                 <Film className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-                <h3 className="text-base font-semibold text-slate-200">No Projects Found</h3>
+                <h3 className="text-sm font-semibold text-slate-200">No Projects Created Yet</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-4">
-                  Start your first cinematic project by uploading a character image and reference video.
+                  Start your first cinematic project by uploading a character image and configuring generation parameters.
                 </p>
                 <Link href="/create">
                   <Button size="sm">
@@ -155,21 +166,22 @@ export default function DashboardPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 gap-3">
-                {projects.slice(0, 4).map((p) => (
+                {projects.slice(0, 5).map((p) => (
                   <Link key={p.id} href={`/projects/${p.id}`}>
                     <Card className="hover:border-violet-500/50 flex items-center justify-between gap-4 p-4 transition-all">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-violet-400">
-                          <Play className="w-5 h-5" />
+                        <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-violet-400 shrink-0">
+                          <Play className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-semibold text-slate-100">{p.title}</h4>
-                          <p className="text-xs text-slate-400">{p.generation_mode?.replace(/_/g, " ")}</p>
+                          <h4 className="text-sm font-bold text-slate-100">{p.title}</h4>
+                          <p className="text-[11px] text-slate-400">{p.generation_mode?.replace(/_/g, " ")}</p>
                         </div>
                       </div>
-                      <Badge variant={p.status === "COMPLETED" ? "success" : "purple"}>
-                        {p.status}
-                      </Badge>
+                      <div className="flex items-center gap-3">
+                        <StatusIndicator status={p.status} />
+                        <ArrowUpRight className="w-4 h-4 text-slate-500" />
+                      </div>
                     </Card>
                   </Link>
                 ))}
@@ -177,44 +189,85 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-400" />
-                Character Library
-              </h2>
-              <Link href="/characters" className="text-xs text-violet-400 hover:underline flex items-center">
-                Manage <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
-              </Link>
+          {/* GENERATION ACTIVITY & CHARACTER SHORTCUTS */}
+          <div className="space-y-6">
+            {/* RECENT GENERATION ACTIVITY */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-cyan-400" />
+                  Recent Generation Activity
+                </h2>
+                <Link href="/generations" className="text-xs text-violet-400 hover:underline flex items-center font-medium">
+                  Queue Center <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                </Link>
+              </div>
+
+              {loading ? (
+                <Skeleton className="h-32 w-full" />
+              ) : generations.length === 0 ? (
+                <Card className="text-center py-6 border-dashed border-slate-800">
+                  <p className="text-xs text-slate-400">No active or recent video renders.</p>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {generations.slice(0, 3).map((g) => (
+                    <Card key={g.id} className="p-3 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <StatusIndicator status={g.status} />
+                        <span className="text-[10px] text-slate-400 font-mono">{g.provider_name}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] text-slate-400">
+                        <span>Progress: {g.progress_percentage}%</span>
+                        <span>{new Date(g.created_at).toLocaleTimeString()}</span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {loading ? (
-              <Skeleton className="h-48 w-full" />
-            ) : characters.length === 0 ? (
-              <Card className="text-center py-8 border-dashed border-slate-800">
-                <Users className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                <p className="text-xs text-slate-400 mb-3">No character models uploaded yet.</p>
-                <Link href="/characters">
-                  <Button size="sm" variant="outline">
-                    <Plus className="w-3.5 h-3.5 mr-1" />
-                    Upload Character
-                  </Button>
+            {/* CHARACTER LIBRARY SHORTCUT */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-indigo-400" />
+                  Character Library
+                </h2>
+                <Link href="/characters" className="text-xs text-violet-400 hover:underline flex items-center font-medium">
+                  Manage <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                 </Link>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {characters.slice(0, 4).map((c) => (
-                  <Card key={c.id} className="p-3 text-center">
-                    <img
-                      src={c.image_url}
-                      alt={c.name}
-                      className="w-full h-24 object-cover rounded-lg mb-2"
-                    />
-                    <p className="text-xs font-semibold text-slate-200 truncate">{c.name}</p>
-                  </Card>
-                ))}
               </div>
-            )}
+
+              {loading ? (
+                <Skeleton className="h-32 w-full" />
+              ) : characters.length === 0 ? (
+                <Card className="text-center py-6 border-dashed border-slate-800 space-y-2">
+                  <p className="text-xs text-slate-400">No character models uploaded.</p>
+                  <Link href="/characters">
+                    <Button size="sm" variant="outline">
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Upload Character
+                    </Button>
+                  </Link>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-2 gap-2.5">
+                  {characters.slice(0, 4).map((c) => (
+                    <Link key={c.id} href={`/create?character_id=${c.id}`}>
+                      <Card className="p-2.5 text-center hover:border-violet-500/50 transition-colors group">
+                        <img
+                          src={c.image_url}
+                          alt={c.name}
+                          className="w-full h-20 object-cover rounded-lg mb-2 bg-slate-900 group-hover:opacity-90"
+                        />
+                        <p className="text-xs font-semibold text-slate-200 truncate">{c.name}</p>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
