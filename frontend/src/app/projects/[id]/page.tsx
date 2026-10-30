@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, StatusIndicator, Skeleton, BeforeAfterPlayer, ConfirmationModal, Toast } from "@/components/ui";
 import { Download, ArrowLeft, RefreshCw, Film, Trash2, Settings, User as UserIcon, Sparkles } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 function VideoResultContent() {
   const params = useParams();
@@ -25,7 +26,7 @@ function VideoResultContent() {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch(`http://localhost:8000/api/projects/${projectId}`, { headers });
+        const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, { headers });
         if (res.ok) {
           setProject(await res.json());
         }
@@ -44,7 +45,7 @@ function VideoResultContent() {
       const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await fetch(`http://localhost:8000/api/projects/${projectId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
         method: "DELETE",
         headers
       });

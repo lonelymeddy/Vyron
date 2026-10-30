@@ -18,6 +18,7 @@ import {
   X
 } from "lucide-react";
 import { cn, Button } from "@/components/ui";
+import { API_BASE_URL } from "@/lib/api";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: Compass },
@@ -72,7 +73,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch("http://localhost:8000/api/credits/balance", { headers }).catch(() => null);
+        const res = await fetch(`${API_BASE_URL}/api/credits/balance`, { headers }).catch(() => null);
         if (res && res.ok) {
           const data = await res.json();
           setCredits(data.balance ?? 100);

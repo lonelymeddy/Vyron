@@ -1,12 +1,15 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     APP_NAME: str = "VYRON AI"
     APP_ENV: str = "development"
     SECRET_KEY: str = "vyron-ai-super-secret-key-change-in-production-min-32-chars"
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
+    ALLOWED_ORIGINS: str = ""
 
     DATABASE_URL: str = "sqlite:///./vyron.db"
 
@@ -32,8 +35,11 @@ class Settings(BaseSettings):
     RUNWAY_API_KEY: str = ""
     RUNWAY_API_BASE_URL: str = "https://api.runwayml.com/v1"
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    @property
+    def sync_database_url(self) -> str:
+        url = self.DATABASE_URL
+        if url and url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql://", 1)
+        return url
 
 settings = Settings()

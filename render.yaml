@@ -1,0 +1,40 @@
+services:
+  # ===================================================
+  # VYRON AI - Backend FastAPI Web Service
+  # ===================================================
+  - type: web
+    name: vyron-backend
+    env: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: APP_NAME
+        value: "VYRON AI"
+      - key: APP_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://vyron-frontend.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: https://vyron-frontend.onrender.com
+      - key: DEFAULT_AI_PROVIDER
+        value: mock_engine
+
+  # ===================================================
+  # VYRON AI - Frontend Next.js Web Service
+  # ===================================================
+  - type: web
+    name: vyron-frontend
+    env: node
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://vyron-backend.onrender.com

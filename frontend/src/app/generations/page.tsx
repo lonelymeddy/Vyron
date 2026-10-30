@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Skeleton, StatusIndicator } from "@/components/ui";
 import { ListOrdered, Clock, RefreshCw, Play, Cpu, Layers } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function GenerationCenterPage() {
   const [generations, setGenerations] = useState<any[]>([]);
@@ -14,7 +15,7 @@ export default function GenerationCenterPage() {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch("http://localhost:8000/api/generations", { headers });
+      const res = await fetch(`${API_BASE_URL}/api/generations`, { headers });
       if (res.ok) {
         setGenerations(await res.json());
       }

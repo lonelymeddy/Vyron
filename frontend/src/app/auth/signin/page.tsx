@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clapperboard, Lock, Mail, ArrowRight } from "lucide-react";
 import { Button, Card, Input } from "@/components/ui";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function SignInPage() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:8000/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

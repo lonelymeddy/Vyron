@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Skeleton, StatusIndicator, ConfirmationModal, Input, Select, Toast } from "@/components/ui";
 import { FolderKanban, Plus, Search, Trash2, Play, Film, Calendar } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function MyProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -26,7 +27,7 @@ export default function MyProjectsPage() {
       if (search) params.append("search", search);
       if (modeFilter) params.append("mode", modeFilter);
 
-      const url = `http://localhost:8000/api/projects${params.toString() ? `?${params.toString()}` : ""}`;
+      const url = `${API_BASE_URL}/api/projects${params.toString() ? `?${params.toString()}` : ""}`;
       const res = await fetch(url, { headers });
       if (res.ok) {
         setProjects(await res.json());
@@ -50,7 +51,7 @@ export default function MyProjectsPage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await fetch(`http://localhost:8000/api/projects/${deleteProject.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${deleteProject.id}`, {
         method: "DELETE",
         headers
       });
