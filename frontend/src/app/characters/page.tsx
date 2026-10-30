@@ -3,19 +3,37 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Button, Card, Skeleton } from "@/components/ui";
-import { Users, Plus, Sparkles, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Button, Card, Skeleton, Modal, ConfirmationModal, Input, Toast } from "@/components/ui";
+import { Users, Plus, Sparkles, Image as ImageIcon, Trash2, Edit2, Eye } from "lucide-react";
 
 export default function CharacterLibraryPage() {
   const [characters, setCharacters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Upload State
   const [uploading, setUploading] = useState(false);
   const [newCharName, setNewCharName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+
+  // Edit / Rename State
+  const [renameChar, setRenameChar] = useState<any | null>(null);
+  const [editName, setEditName] = useState("");
+  const [renaming, setRenaming] = useState(false);
+
+  // Delete Confirmation State
+  const [deleteChar, setDeleteChar] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Preview Modal State
+  const [previewChar, setPreviewChar] = useState<any | null>(null);
+
+  // Toast
+  const [toastMessage, setToastMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   const fetchCharacters = async () => {
     try {
-      const token = localStorage.getItem("vyron_token");
+      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch("http://localhost:8000/api/characters", { headers });
       if (res.ok) {
@@ -32,132 +50,233 @@ export default function CharacterLibraryPage() {
     fetchCharacters();
   }, []);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        setToastMessage({ type: "error", text: "Please upload a valid image file (PNG, JPG, WEBP)." });
+        return;
+      }
+      setSelectedFile(file);
+      setFilePreview(URL.createObjectURL(file));
+      if (!newCharName) setNewCharName(file.name.split(".")[0]);
+    }
+  };
+
   const handleAddCharacter = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) return;
 
     setUploading(true);
+    setToastMessage(null);
+
     try {
-      const token = localStorage.getItem("vyron_token");
+      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const fakeImageUrl = URL.createObjectURL(selectedFile);
+      const imageUrl = filePreview || URL.createObjectURL(selectedFile);
 
-      await fetch("http://localhost:8000/api/characters", {
+      const res = await fetch("http://localhost:8000/api/characters", {
         method: "POST",
         headers,
         body: JSON.stringify({
           name: newCharName || selectedFile.name.split(".")[0],
-          image_url: fakeImageUrl
+          image_url: imageUrl
         })
       });
 
+      if (!res.ok) {
+        throw new Error("Failed to save character avatar.");
+      }
+
       setNewCharName("");
       setSelectedFile(null);
+      setFilePreview(null);
+      setToastMessage({ type: "success", text: "Character model uploaded and saved successfully!" });
       fetchCharacters();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setToastMessage({ type: "error", text: err.message || "Failed to save character." });
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleRename = async () => {
+    if (!renameChar || !editName.trim()) return;
+
+    setRenaming(true);
     try {
-      const token = localStorage.getItem("vyron_token");
+      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`http://localhost:8000/api/characters/${renameChar.id}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ name: editName })
+      });
+
+      if (res.ok) {
+        setToastMessage({ type: "success", text: "Character renamed successfully." });
+        setRenameChar(null);
+        fetchCharacters();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteChar) return;
+
+    setDeleting(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      await fetch(`http://localhost:8000/api/characters/${id}`, {
+
+      const res = await fetch(`http://localhost:8000/api/characters/${deleteChar.id}`, {
         method: "DELETE",
         headers
       });
-      fetchCharacters();
+
+      if (res.ok) {
+        setToastMessage({ type: "success", text: "Character deleted successfully." });
+        setDeleteChar(null);
+        fetchCharacters();
+      }
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
     <AppLayout>
       <div className="space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Users className="w-6 h-6 text-indigo-400" />
-              Character Library
-            </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Upload and manage custom character avatars for AI video replacement and 3D generation.
-            </p>
-          </div>
+        {/* HEADER */}
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Users className="w-6 h-6 text-indigo-400" />
+            Character Library
+          </h1>
+          <p className="text-slate-400 text-xs md:text-sm mt-1 leading-relaxed">
+            Upload, preview, rename, and manage custom character avatars for AI video replacement and 3D CGI video generation.
+          </p>
         </div>
 
-        <Card>
-          <h3 className="text-sm font-bold text-slate-200 mb-3">Upload New Character Reference</h3>
-          <form onSubmit={handleAddCharacter} className="flex flex-col md:flex-row gap-4 items-end">
-            <div className="flex-1 space-y-1">
-              <label className="text-xs text-slate-400">Character Name</label>
-              <input
-                type="text"
-                value={newCharName}
-                onChange={(e) => setNewCharName(e.target.value)}
-                placeholder="e.g. Tactical Operator"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-              />
-            </div>
+        {toastMessage && (
+          <Toast
+            type={toastMessage.type}
+            message={toastMessage.text}
+            onClose={() => setToastMessage(null)}
+          />
+        )}
 
-            <div className="flex-1 space-y-1">
-              <label className="text-xs text-slate-400">Select Image File</label>
+        {/* UPLOAD PANEL */}
+        <Card className="p-6 space-y-4">
+          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <Plus className="w-4 h-4 text-violet-400" />
+            Upload New Character Reference Model
+          </h3>
+
+          <form onSubmit={handleAddCharacter} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <Input
+              label="Character Name"
+              value={newCharName}
+              onChange={(e) => setNewCharName(e.target.value)}
+              placeholder="e.g. Tactical Operator"
+            />
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300">Character Image File</label>
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-400 file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-slate-800 file:text-slate-200"
+                onChange={handleFileChange}
+                className="w-full bg-[#0a0e17] border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-400 file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-slate-800 file:text-slate-200 cursor-pointer"
               />
             </div>
 
-            <Button type="submit" isLoading={uploading} disabled={!selectedFile}>
-              <Plus className="w-4 h-4 mr-1" />
-              Save Character
+            <Button type="submit" isLoading={uploading} disabled={!selectedFile} className="w-full">
+              <Plus className="w-4 h-4 mr-1.5" />
+              Save to Library
             </Button>
           </form>
+
+          {filePreview && (
+            <div className="pt-3 border-t border-slate-800/80 flex items-center gap-4">
+              <img src={filePreview} alt="Upload Preview" className="w-16 h-16 rounded-lg object-cover border border-slate-700 bg-slate-900" />
+              <div className="text-xs text-slate-300">
+                <span className="font-semibold block">{selectedFile?.name}</span>
+                <span className="text-slate-500">{(selectedFile!.size / 1024 / 1024).toFixed(2)} MB &bull; Ready for upload</span>
+              </div>
+            </div>
+          )}
         </Card>
 
+        {/* GALLERY */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <Skeleton className="h-72 w-full" />
+            <Skeleton className="h-72 w-full" />
+            <Skeleton className="h-72 w-full" />
           </div>
         ) : characters.length === 0 ? (
-          <Card className="text-center py-12 border-dashed border-slate-800">
+          <Card className="text-center py-16 border-dashed border-slate-800">
             <ImageIcon className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-slate-200">No Characters Found</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-              Upload character images above to start generating personalized CGI videos.
+            <h3 className="text-base font-semibold text-slate-200">No Character Models Found</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 leading-relaxed">
+              Upload character photos above to build your private avatar library for AI video renders.
             </p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {characters.map((c) => (
-              <Card key={c.id} className="p-4 space-y-3 flex flex-col justify-between">
+              <Card key={c.id} className="p-4 space-y-3 flex flex-col justify-between hover:border-violet-500/50 transition-all group">
                 <div>
-                  <div className="h-48 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 mb-3 relative group">
+                  <div className="h-52 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 mb-3 relative group">
                     <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setPreviewChar(c)}
+                        className="p-2 bg-slate-900/90 hover:bg-violet-600 text-white rounded-lg transition-colors"
+                        title="Preview Full Image"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setRenameChar(c);
+                          setEditName(c.name);
+                        }}
+                        className="p-2 bg-slate-900/90 hover:bg-violet-600 text-white rounded-lg transition-colors"
+                        title="Rename Character"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <h4 className="font-bold text-slate-100 text-sm truncate">{c.name}</h4>
-                  <p className="text-[10px] text-slate-400">Uploaded {new Date(c.created_at).toLocaleDateString()}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Uploaded {new Date(c.created_at).toLocaleDateString()}
+                  </p>
                 </div>
 
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+                <div className="flex items-center gap-2 pt-3 border-t border-slate-800/80">
                   <Link href={`/create?character_id=${c.id}`} className="flex-1">
                     <Button size="sm" variant="outline" className="w-full text-xs">
-                      <Sparkles className="w-3 h-3 mr-1 text-violet-400" />
-                      Use in Video
+                      <Sparkles className="w-3.5 h-3.5 mr-1 text-violet-400" />
+                      Use in Creator
                     </Button>
                   </Link>
                   <button
-                    onClick={() => handleDelete(c.id)}
+                    onClick={() => setDeleteChar(c)}
                     className="p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
+                    title="Delete Character"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -166,6 +285,55 @@ export default function CharacterLibraryPage() {
             ))}
           </div>
         )}
+
+        {/* FULL IMAGE PREVIEW MODAL */}
+        {previewChar && (
+          <Modal
+            isOpen={!!previewChar}
+            onClose={() => setPreviewChar(null)}
+            title={`Character Preview — ${previewChar.name}`}
+          >
+            <div className="p-2 bg-slate-950 rounded-xl overflow-hidden flex justify-center">
+              <img src={previewChar.image_url} alt={previewChar.name} className="max-h-[70vh] object-contain rounded-lg" />
+            </div>
+          </Modal>
+        )}
+
+        {/* RENAME MODAL */}
+        {renameChar && (
+          <Modal
+            isOpen={!!renameChar}
+            onClose={() => setRenameChar(null)}
+            title="Rename Character Model"
+            footer={
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setRenameChar(null)}>
+                  Cancel
+                </Button>
+                <Button size="sm" isLoading={renaming} onClick={handleRename}>
+                  Save Name
+                </Button>
+              </>
+            }
+          >
+            <Input
+              label="New Character Name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+            />
+          </Modal>
+        )}
+
+        {/* DELETE CONFIRMATION MODAL */}
+        <ConfirmationModal
+          isOpen={!!deleteChar}
+          onClose={() => setDeleteChar(null)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Character Avatar"
+          message={`Are you sure you want to delete '${deleteChar?.name}'? This action cannot be undone.`}
+          confirmText="Delete Avatar"
+          isLoading={deleting}
+        />
       </div>
     </AppLayout>
   );
