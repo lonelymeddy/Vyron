@@ -120,7 +120,7 @@ The application will be accessible at `http://localhost:3000`.
   ```
 - **Start Command:**
   ```bash
-  python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+  PYTHONPATH=. python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
   ```
 - **Environment Variables:**
   - `APP_ENV`: `production`
@@ -161,7 +161,7 @@ The application will be accessible at `http://localhost:3000`.
 - **Backend:**
   - Root Directory: `backend`
   - Build Command: `pip install -r requirements.txt`
-  - Start Command: `python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+  - Start Command: `PYTHONPATH=. python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
   - Set `FRONTEND_URL` and `ALLOWED_ORIGINS` to match your frontend domain.
 
 - **Frontend:**
