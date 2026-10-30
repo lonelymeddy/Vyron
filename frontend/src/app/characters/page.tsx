@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Skeleton, Modal, ConfirmationModal, Input, Toast } from "@/components/ui";
 import { Users, Plus, Sparkles, Image as ImageIcon, Trash2, Edit2, Eye } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function CharacterLibraryPage() {
   const [characters, setCharacters] = useState<any[]>([]);
@@ -35,7 +36,7 @@ export default function CharacterLibraryPage() {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch("http://localhost:8000/api/characters", { headers });
+      const res = await fetch(`${API_BASE_URL}/api/characters`, { headers });
       if (res.ok) {
         setCharacters(await res.json());
       }
@@ -77,7 +78,7 @@ export default function CharacterLibraryPage() {
 
       const imageUrl = filePreview || URL.createObjectURL(selectedFile);
 
-      const res = await fetch("http://localhost:8000/api/characters", {
+      const res = await fetch(`${API_BASE_URL}/api/characters`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -111,7 +112,7 @@ export default function CharacterLibraryPage() {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const res = await fetch(`http://localhost:8000/api/characters/${renameChar.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/characters/${renameChar.id}`, {
         method: "PATCH",
         headers,
         body: JSON.stringify({ name: editName })
@@ -137,7 +138,7 @@ export default function CharacterLibraryPage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await fetch(`http://localhost:8000/api/characters/${deleteChar.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/characters/${deleteChar.id}`, {
         method: "DELETE",
         headers
       });

@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 type GenerationMode = "CHARACTER_REPLACEMENT" | "FULL_CGI_RECREATION" | "ORIGINAL_CGI_CREATION";
 
@@ -67,7 +68,7 @@ function CreatorContent() {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch("http://localhost:8000/api/characters", { headers });
+        const res = await fetch(`${API_BASE_URL}/api/characters`, { headers });
         if (res.ok) {
           const chars = await res.json();
           setSavedCharacters(chars);
@@ -155,7 +156,7 @@ function CreatorContent() {
 
       // If user uploaded a brand new character image, create character record first
       if (!charId && characterImage) {
-        const charRes = await fetch("http://localhost:8000/api/characters", {
+        const charRes = await fetch(`${API_BASE_URL}/api/characters`, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -170,7 +171,7 @@ function CreatorContent() {
       }
 
       // Create Project
-      const projRes = await fetch("http://localhost:8000/api/projects", {
+      const projRes = await fetch(`${API_BASE_URL}/api/projects`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -201,14 +202,14 @@ function CreatorContent() {
 
       // Attach Source Video if mode requires reference video
       if (referenceVideo && (mode === "CHARACTER_REPLACEMENT" || mode === "FULL_CGI_RECREATION")) {
-        await fetch(`http://localhost:8000/api/projects/${projData.id}/source-video?file_name=${encodeURIComponent(videoFile?.name || "reference.mp4")}&video_url=${encodeURIComponent(referenceVideo)}&duration_seconds=15.0&resolution=${encodeURIComponent(resolution)}`, {
+        await fetch(`${API_BASE_URL}/api/projects/${projData.id}/source-video?file_name=${encodeURIComponent(videoFile?.name || "reference.mp4")}&video_url=${encodeURIComponent(referenceVideo)}&duration_seconds=15.0&resolution=${encodeURIComponent(resolution)}`, {
           method: "POST",
           headers
         }).catch(() => null);
       }
 
       // Start Generation Job
-      const genRes = await fetch("http://localhost:8000/api/generations", {
+      const genRes = await fetch(`${API_BASE_URL}/api/generations`, {
         method: "POST",
         headers,
         body: JSON.stringify({

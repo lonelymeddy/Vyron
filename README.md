@@ -60,6 +60,8 @@ VYRON AI is an AI-powered cinematic 3D video and virtual-world creation platform
 │   │   └── lib/             # Centralized API fetch client (`api.ts`)
 │   ├── package.json
 │   └── tsconfig.json
+├── render.yaml              # Render Blueprint deployment configuration
+├── vercel.json              # Vercel deployment configuration
 ├── .env.example             # Template environment variables
 └── README.md
 ```
@@ -98,7 +100,79 @@ The application will be accessible at `http://localhost:3000`.
 
 ---
 
-## 5. Running Automated Tests
+## 5. Deployment Guide (Render, Vercel & Hosting Platforms)
+
+### Deploying on Render
+
+#### Option A: Using Render Blueprint (`render.yaml`)
+1. Push this repository to GitHub/GitLab.
+2. In Render Dashboard, select **New +** -> **Blueprint**.
+3. Connect your repository. Render will automatically detect `render.yaml` and configure both the backend FastAPI Web Service and frontend Next.js Web Service.
+
+#### Option B: Manual Web Service Setup on Render
+
+**1. Backend Web Service (`vyron-backend`)**
+- **Environment:** Python 3
+- **Root Directory:** `backend`
+- **Build Command:**
+  ```bash
+  pip install -r requirements.txt
+  ```
+- **Start Command:**
+  ```bash
+  python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+  ```
+- **Environment Variables:**
+  - `APP_ENV`: `production`
+  - `SECRET_KEY`: `<your-random-32-character-secret>`
+  - `FRONTEND_URL`: `https://<your-frontend-service-name>.onrender.com`
+  - `ALLOWED_ORIGINS`: `https://<your-frontend-service-name>.onrender.com`
+  - `DATABASE_URL`: Optional (PostgreSQL connection string; defaults to SQLite if omitted)
+
+**2. Frontend Web Service (`vyron-frontend`)**
+- **Environment:** Node
+- **Root Directory:** `frontend`
+- **Build Command:**
+  ```bash
+  npm install && npm run build
+  ```
+- **Start Command:**
+  ```bash
+  npm start
+  ```
+- **Environment Variables:**
+  - `NEXT_PUBLIC_API_URL`: `https://<your-backend-service-name>.onrender.com`
+
+---
+
+### Deploying Frontend on Vercel
+
+1. Import the repository in Vercel.
+2. Set **Root Directory** to `frontend`.
+3. Framework Preset: **Next.js**.
+4. Set Environment Variable:
+   - `NEXT_PUBLIC_API_URL`: `https://<your-backend-url>` (e.g., your Render backend URL).
+5. Click **Deploy**.
+
+---
+
+### Deploying on Railway / Other Platforms
+
+- **Backend:**
+  - Root Directory: `backend`
+  - Build Command: `pip install -r requirements.txt`
+  - Start Command: `python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+  - Set `FRONTEND_URL` and `ALLOWED_ORIGINS` to match your frontend domain.
+
+- **Frontend:**
+  - Root Directory: `frontend`
+  - Build Command: `npm run build`
+  - Start Command: `npm start`
+  - Set `NEXT_PUBLIC_API_URL` to point to the backend service.
+
+---
+
+## 6. Running Automated Tests
 
 To run the backend test suite covering Authentication, Character CRUD, Project Management, Credit Accounting, and AI Generation job submission:
 
@@ -114,7 +188,7 @@ npm run build --prefix frontend
 
 ---
 
-## 6. Future AI & 3D World Roadmap
+## 7. Future AI & 3D World Roadmap
 
 - **External Provider Integrations:** Direct API connection to Kling AI, Runway Gen-3, and ComfyUI server clusters.
 - **Blender & Unreal Engine Pipeline:** Server-side 3D render automation using Blender Python API (`bpy`) and Unreal Engine Blueprints for PUBG-inspired map environments, vehicle customizers, and lighting presets.

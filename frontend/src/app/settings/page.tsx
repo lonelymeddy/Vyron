@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Input, Toast } from "@/components/ui";
 import { Settings, User as UserIcon, Shield, Database, Bell, Lock, CheckCircle2, Cloud, CreditCard } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"profile" | "account" | "security" | "notifications" | "privacy" | "storage">("profile");
@@ -33,7 +34,7 @@ export default function SettingsPage() {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("vyron_token") : null;
         if (!token) return;
-        const res = await fetch("http://localhost:8000/api/auth/me", {
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

@@ -17,6 +17,7 @@ import {
   Activity,
   ArrowUpRight
 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -32,10 +33,10 @@ export default function DashboardPage() {
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
         const [projRes, charRes, genRes, credRes] = await Promise.all([
-          fetch("http://localhost:8000/api/projects", { headers }).catch(() => null),
-          fetch("http://localhost:8000/api/characters", { headers }).catch(() => null),
-          fetch("http://localhost:8000/api/generations", { headers }).catch(() => null),
-          fetch("http://localhost:8000/api/credits/balance", { headers }).catch(() => null)
+          fetch(`${API_BASE_URL}/api/projects`, { headers }).catch(() => null),
+          fetch(`${API_BASE_URL}/api/characters`, { headers }).catch(() => null),
+          fetch(`${API_BASE_URL}/api/generations`, { headers }).catch(() => null),
+          fetch(`${API_BASE_URL}/api/credits/balance`, { headers }).catch(() => null)
         ]);
 
         if (projRes && projRes.ok) setProjects(await projRes.json());
