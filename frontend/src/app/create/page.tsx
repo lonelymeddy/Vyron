@@ -62,10 +62,10 @@ function CreatorContent() {
         const chars = await apiClient.characters.list();
         setSavedCharacters(chars);
         if (initialCharId) {
-          const match = chars.find((c) => c.id === initialCharId);
+          const match = chars.find((c) => String(c.id) === String(initialCharId));
           if (match) {
-            setSelectedCharId(match.id);
-            setCharacterImage(match.image_url);
+            setSelectedCharId(String(match.id));
+            setCharacterImage(match.image_url || null);
             setCharacterName(match.name);
           }
         }
@@ -84,9 +84,9 @@ function CreatorContent() {
       setCharacterName("");
       return;
     }
-    const match = savedCharacters.find((c) => c.id === charId);
+    const match = savedCharacters.find((c) => String(c.id) === String(charId));
     if (match) {
-      setCharacterImage(match.image_url);
+      setCharacterImage(match.image_url || null);
       setCharacterName(match.name);
     }
   };
@@ -142,7 +142,7 @@ function CreatorContent() {
       // If user provided a new character file, upload it
       if (!charId && charFile) {
         const uploadedChar = await apiClient.characters.uploadImage(charFile, characterName || "Custom Avatar");
-        charId = uploadedChar.id;
+        charId = String(uploadedChar.id);
       }
 
       // Create Project record

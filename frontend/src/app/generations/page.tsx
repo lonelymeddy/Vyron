@@ -121,7 +121,7 @@ export default function GenerationCenterPage() {
                           ? "bg-rose-500"
                           : "bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-400"
                       }`}
-                      style={{ width: `${Math.max(5, g.progress_percentage)}%` }}
+                      style={{ width: `${Math.max(5, g.progress_percentage ?? 0)}%` }}
                     />
                   </div>
                 </div>
