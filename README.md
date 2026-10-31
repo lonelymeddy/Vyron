@@ -125,8 +125,8 @@ The application will be accessible at `http://localhost:3000`.
 - **Environment Variables:**
   - `APP_ENV`: `production`
   - `SECRET_KEY`: `<your-random-32-character-secret>`
-  - `FRONTEND_URL`: `https://<your-frontend-service-name>.onrender.com`
-  - `ALLOWED_ORIGINS`: `https://<your-frontend-service-name>.onrender.com`
+  - `FRONTEND_URL`: `https://vyron-1uaj.onrender.com`
+  - `ALLOWED_ORIGINS`: `https://vyron-1uaj.onrender.com,https://vyron-frontend.onrender.com`
   - `DATABASE_URL`: Optional (PostgreSQL connection string; defaults to SQLite if omitted)
 
 **2. Frontend Web Service (`vyron-frontend`)**
@@ -141,7 +141,7 @@ The application will be accessible at `http://localhost:3000`.
   npm start
   ```
 - **Environment Variables:**
-  - `NEXT_PUBLIC_API_URL`: `https://<your-backend-service-name>.onrender.com`
+  - `NEXT_PUBLIC_API_URL`: `https://vyron-1uaj.onrender.com`
 
 ---
 
@@ -151,7 +151,7 @@ The application will be accessible at `http://localhost:3000`.
 2. Set **Root Directory** to `frontend`.
 3. Framework Preset: **Next.js**.
 4. Set Environment Variable:
-   - `NEXT_PUBLIC_API_URL`: `https://<your-backend-url>` (e.g., your Render backend URL).
+   - `NEXT_PUBLIC_API_URL`: `https://vyron-1uaj.onrender.com` (deployed FastAPI backend URL).
 5. Click **Deploy**.
 
 ---

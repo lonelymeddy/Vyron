@@ -46,6 +46,20 @@ def test_health_check(client):
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
+def test_cors_preflight_for_deployed_domains(client):
+    for origin in ["https://vyron-1uaj.onrender.com", "https://vyron-frontend.onrender.com"]:
+        response = client.options(
+            "/api/projects",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "Authorization,Content-Type",
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers.get("access-control-allow-origin") == origin
+        assert response.headers.get("access-control-allow-credentials") == "true"
+
 def test_unauthorized_access(client):
     assert client.get("/api/auth/me").status_code == 401
     assert client.get("/api/characters").status_code == 401

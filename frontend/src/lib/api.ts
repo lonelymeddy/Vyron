@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const RAW_API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://vyron-1uaj.onrender.com";
+export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 export type GenerationMode = "CHARACTER_REPLACEMENT" | "FULL_CGI_RECREATION" | "ORIGINAL_CGI_CREATION";
 
@@ -138,10 +140,21 @@ async function request<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
+      ...options,
+      headers,
+    });
+  } catch (netErr: any) {
+    throw new Error(
+      netErr?.message
+        ? `Network request failed: ${netErr.message}`
+        : "Failed to connect to the VYRON AI server. Please check your network connection."
+    );
+  }
 
   if (response.status === 401) {
     clearToken();
@@ -149,7 +162,13 @@ async function request<T>(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || errorData.message || "An error occurred");
+    const message =
+      (typeof errorData.detail === "string" && errorData.detail) ||
+      (Array.isArray(errorData.detail) &&
+        errorData.detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ")) ||
+      errorData.message ||
+      `Request failed with status ${response.status}`;
+    throw new Error(message);
   }
 
   return response.json();
