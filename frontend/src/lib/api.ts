@@ -4,7 +4,17 @@ export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 export type GenerationMode = "CHARACTER_REPLACEMENT" | "FULL_CGI_RECREATION" | "ORIGINAL_CGI_CREATION";
 
-export type JobStatus = "DRAFT" | "UPLOADING" | "ANALYZING" | "QUEUED" | "PROCESSING" | "POST_PROCESSING" | "COMPLETED" | "FAILED";
+export type JobStatus =
+  | "DRAFT"
+  | "UPLOADING"
+  | "ANALYZING"
+  | "STORYBOARDING"
+  | "QUEUED"
+  | "PROCESSING"
+  | "POST_PROCESSING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
 
 export interface User {
   id: string;
@@ -50,17 +60,67 @@ export interface GeneratedVideo {
   created_at: string;
 }
 
+export interface StoryboardScene {
+  scene_number: int;
+  title: string;
+  duration_seconds: number;
+  character_action: string;
+  environment: string;
+  camera_direction: string;
+  lighting: string;
+  objects?: string[];
+  vehicles?: string;
+  generation_instructions: string;
+}
+
+type int = number;
+
+export interface Storyboard {
+  id: string;
+  project_id: string;
+  title: string;
+  total_scenes: number;
+  estimated_duration_seconds: number;
+  scenes: StoryboardScene[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProviderCapabilityInfo {
+  name: string;
+  display_name: string;
+  is_configured: boolean;
+  capabilities: string[];
+  supported_resolutions: string[];
+  supported_durations: number[];
+  supports_character_consistency: boolean;
+  disclaimer: string;
+}
+
+export interface GenerationShot {
+  id: string;
+  scene_number: number;
+  status: JobStatus;
+  provider_task_id?: string;
+  output_url?: string;
+  error_message?: string;
+  created_at: string;
+}
+
 export interface Generation {
   id: string;
   project_id: string;
   provider_name: string;
+  provider_task_id?: string;
   status: JobStatus;
   progress_percentage: number;
   error_message?: string;
+  cost_credits?: number;
   started_at?: string;
   completed_at?: string;
   created_at: string;
   jobs?: any[];
+  shots?: GenerationShot[];
   generated_videos?: GeneratedVideo[];
 }
 
@@ -92,6 +152,7 @@ export interface Project {
   character?: Character;
   source_videos?: SourceVideo[];
   generations?: Generation[];
+  storyboard?: Storyboard;
 }
 
 export interface CreditBalance {
@@ -290,6 +351,23 @@ export const apiClient = {
 
     get: async (id: string) => {
       return request<Generation>(`/api/generations/${id}`);
+    },
+
+    getProviders: async () => {
+      return request<ProviderCapabilityInfo[]>("/api/generations/providers");
+    },
+
+    generateStoryboard: async (projectId: string) => {
+      return request<Storyboard>(`/api/generations/storyboard/generate/${projectId}`, {
+        method: "POST",
+      });
+    },
+
+    updateStoryboard: async (storyboardId: string, data: { title?: string; scenes: StoryboardScene[] }) => {
+      return request<Storyboard>(`/api/generations/storyboard/${storyboardId}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
     },
 
     start: async (projectId: string, aiProvider?: string) => {

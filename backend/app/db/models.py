@@ -19,6 +19,7 @@ class JobStatus(str, enum.Enum):
     DRAFT = "DRAFT"
     UPLOADING = "UPLOADING"
     ANALYZING = "ANALYZING"
+    STORYBOARDING = "STORYBOARDING"
     QUEUED = "QUEUED"
     PROCESSING = "PROCESSING"
     POST_PROCESSING = "POST_PROCESSING"
@@ -81,6 +82,39 @@ class Project(Base):
     character = relationship("Character", back_populates="projects")
     source_videos = relationship("SourceVideo", back_populates="project", cascade="all, delete-orphan")
     generations = relationship("Generation", back_populates="project", cascade="all, delete-orphan")
+    storyboard = relationship("Storyboard", back_populates="project", uselist=False, cascade="all, delete-orphan")
+
+class Storyboard(Base):
+    __tablename__ = "storyboards"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    title = Column(String, nullable=False)
+    total_scenes = Column(Integer, default=1)
+    estimated_duration_seconds = Column(Float, default=15.0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    project = relationship("Project", back_populates="storyboard")
+    scenes = relationship("StoryboardSceneModel", back_populates="storyboard", cascade="all, delete-orphan", order_by="StoryboardSceneModel.scene_number")
+
+class StoryboardSceneModel(Base):
+    __tablename__ = "storyboard_scenes"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    storyboard_id = Column(String, ForeignKey("storyboards.id", ondelete="CASCADE"), nullable=False, index=True)
+    scene_number = Column(Integer, nullable=False)
+    title = Column(String, nullable=False)
+    duration_seconds = Column(Float, default=5.0)
+    character_action = Column(Text, nullable=False)
+    environment = Column(Text, nullable=False)
+    camera_direction = Column(String, nullable=False)
+    lighting = Column(String, nullable=False)
+    objects = Column(JSON, nullable=True)
+    vehicles = Column(String, nullable=True)
+    generation_instructions = Column(Text, nullable=False)
+
+    storyboard = relationship("Storyboard", back_populates="scenes")
 
 class SourceVideo(Base):
     __tablename__ = "source_videos"
@@ -107,15 +141,18 @@ class Generation(Base):
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     provider_id = Column(String, nullable=True)
     provider_name = Column(String, nullable=False, default="mock_engine")
+    provider_task_id = Column(String, nullable=True)
     status = Column(Enum(JobStatus), nullable=False, default=JobStatus.QUEUED)
     progress_percentage = Column(Integer, default=0)
     error_message = Column(Text, nullable=True)
+    cost_credits = Column(Float, default=10.0)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     project = relationship("Project", back_populates="generations")
     jobs = relationship("GenerationJob", back_populates="generation", cascade="all, delete-orphan")
+    shots = relationship("GenerationShotModel", back_populates="generation", cascade="all, delete-orphan")
     generated_videos = relationship("GeneratedVideo", back_populates="generation", cascade="all, delete-orphan")
 
 class GenerationJob(Base):
@@ -130,6 +167,20 @@ class GenerationJob(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     generation = relationship("Generation", back_populates="jobs")
+
+class GenerationShotModel(Base):
+    __tablename__ = "generation_shots"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    generation_id = Column(String, ForeignKey("generations.id", ondelete="CASCADE"), nullable=False, index=True)
+    scene_number = Column(Integer, nullable=False)
+    status = Column(Enum(JobStatus), nullable=False, default=JobStatus.QUEUED)
+    provider_task_id = Column(String, nullable=True)
+    output_url = Column(String, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    generation = relationship("Generation", back_populates="shots")
 
 class GeneratedVideo(Base):
     __tablename__ = "generated_videos"
