@@ -18,9 +18,9 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: FRONTEND_URL
-        value: https://vyron-frontend.onrender.com
+        value: https://vyron-1uaj.onrender.com
       - key: ALLOWED_ORIGINS
-        value: https://vyron-frontend.onrender.com
+        value: https://vyron-1uaj.onrender.com,https://vyron-frontend.onrender.com
       - key: DEFAULT_AI_PROVIDER
         value: mock_engine
 
@@ -37,4 +37,4 @@ services:
     startCommand: "npm start"
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://vyron-backend.onrender.com
+        value: https://vyron-1uaj.onrender.com

@@ -7,9 +7,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "VYRON AI"
     APP_ENV: str = "development"
     SECRET_KEY: str = "vyron-ai-super-secret-key-change-in-production-min-32-chars"
-    FRONTEND_URL: str = "http://localhost:3000"
-    BACKEND_URL: str = "http://localhost:8000"
-    ALLOWED_ORIGINS: str = ""
+    FRONTEND_URL: str = "https://vyron-1uaj.onrender.com"
+    BACKEND_URL: str = "https://vyron-1uaj.onrender.com"
+    ALLOWED_ORIGINS: str = "https://vyron-1uaj.onrender.com,https://vyron-frontend.onrender.com"
 
     DATABASE_URL: str = "sqlite:///./vyron.db"
 

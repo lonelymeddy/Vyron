@@ -34,6 +34,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Parse origins dynamically for CORS
 raw_origins = [
     settings.FRONTEND_URL,
+    "https://vyron-1uaj.onrender.com",
+    "https://vyron-frontend.onrender.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
@@ -41,12 +43,12 @@ if settings.ALLOWED_ORIGINS:
     raw_origins.extend([o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()])
 
 # Filter out empty strings and wildcards when credentials are allowed
-origins = list(set([o for o in raw_origins if o and o != "*"]))
+origins = sorted(list(set([o for o in raw_origins if o and o != "*"])))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if origins else ["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app" if not settings.ALLOWED_ORIGINS else None,
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
