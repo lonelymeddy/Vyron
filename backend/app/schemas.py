@@ -50,6 +50,7 @@ class CharacterResponse(CharacterBase):
     storage_path: Optional[str] = None
     file_size: Optional[int] = None
     mime_type: Optional[str] = None
+    metadata_json: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
 
@@ -82,6 +83,50 @@ class GeneratedVideoResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class GenerationShotResponse(BaseModel):
+    id: str
+    scene_number: int
+    status: JobStatus
+    provider_task_id: Optional[str] = None
+    output_url: Optional[str] = None
+    error_message: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class StoryboardSceneSchema(BaseModel):
+    scene_number: int
+    title: str
+    duration_seconds: float = 5.0
+    character_action: str
+    environment: str
+    camera_direction: str
+    lighting: str
+    objects: Optional[List[str]] = None
+    vehicles: Optional[str] = None
+    generation_instructions: str
+
+    class Config:
+        from_attributes = True
+
+class StoryboardResponse(BaseModel):
+    id: str
+    project_id: str
+    title: str
+    total_scenes: int
+    estimated_duration_seconds: float
+    scenes: List[StoryboardSceneSchema] = []
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class StoryboardUpdate(BaseModel):
+    title: Optional[str] = None
+    scenes: List[StoryboardSceneSchema]
+
 class GenerationCreate(BaseModel):
     project_id: str
     provider_name: Optional[str] = "mock_engine"
@@ -100,13 +145,16 @@ class GenerationResponse(BaseModel):
     id: str
     project_id: str
     provider_name: str
+    provider_task_id: Optional[str] = None
     status: JobStatus
     progress_percentage: int
     error_message: Optional[str] = None
+    cost_credits: Optional[float] = 10.0
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     created_at: datetime
     jobs: List[GenerationJobResponse] = []
+    shots: List[GenerationShotResponse] = []
     generated_videos: List[GeneratedVideoResponse] = []
 
     class Config:
@@ -117,9 +165,13 @@ class ProjectSettings(BaseModel):
     resolution: str = "1080p"
     duration: int = 10
     visual_style: str = "pubg_cinematic"
-    camera_direction: Optional[str] = "cinematic_pan"
+    camera_direction: Optional[str] = "cinematic_orbit"
     audio_enabled: bool = True
     character_consistency_weight: float = 0.95
+    environment: Optional[str] = "erangel_pubg"
+    lighting: Optional[str] = "sunset_dramatic"
+    outfit: Optional[str] = "tactical_black"
+    vehicle: Optional[str] = "dacia_sedan"
 
 class ProjectCreate(BaseModel):
     title: str
@@ -152,6 +204,7 @@ class ProjectResponse(BaseModel):
     character: Optional[CharacterResponse] = None
     source_videos: List[SourceVideoResponse] = []
     generations: List[GenerationResponse] = []
+    storyboard: Optional[StoryboardResponse] = None
 
     class Config:
         from_attributes = True
@@ -187,3 +240,13 @@ class WorldPreset(BaseModel):
     map_location: str
     weather: str
     preview_url: str
+
+class ProviderCapabilityInfo(BaseModel):
+    name: str
+    display_name: str
+    is_configured: bool
+    capabilities: List[str]
+    supported_resolutions: List[str]
+    supported_durations: List[int]
+    supports_character_consistency: bool
+    disclaimer: str

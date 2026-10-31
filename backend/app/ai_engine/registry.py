@@ -1,8 +1,11 @@
 from typing import Dict, Optional, List, Any
 from app.ai_engine.base import BaseAIProvider
-from app.ai_engine.providers import MockEngineProvider, KlingAIProvider, RunwayAIProvider
+from app.ai_engine.mock import MockEngineProvider
+from app.ai_engine.kling import KlingAIProvider
+from app.ai_engine.runway import RunwayAIProvider
 from app.config import settings
 from app.db.models import GenerationMode
+from app.ai_engine.capabilities import ProviderCapability
 
 class AIProviderRegistry:
     def __init__(self):
@@ -18,12 +21,19 @@ class AIProviderRegistry:
         self._providers[provider.provider_name] = provider
 
     def get_provider(self, provider_name: str) -> Optional[BaseAIProvider]:
-        return self._providers.get(provider_name)
+        norm = provider_name.lower()
+        if "runway" in norm:
+            norm = "runway"
+        elif "kling" in norm:
+            norm = "kling"
+        elif "mock" in norm:
+            norm = "mock_engine"
+        return self._providers.get(norm)
 
     def select_best_provider(self, mode: GenerationMode, preferred_provider: Optional[str] = None) -> BaseAIProvider:
-        if preferred_provider and preferred_provider in self._providers:
-            p = self._providers[preferred_provider]
-            if p.supports_mode(mode) and p.is_configured():
+        if preferred_provider:
+            p = self.get_provider(preferred_provider)
+            if p and p.supports_mode(mode) and p.is_configured():
                 return p
 
         for name, p in self._providers.items():
@@ -38,7 +48,12 @@ class AIProviderRegistry:
             result.append({
                 "name": provider.provider_name,
                 "display_name": provider.display_name,
-                "is_configured": provider.is_configured()
+                "is_configured": provider.is_configured(),
+                "capabilities": [c.value for c in provider.capabilities.capabilities],
+                "supported_resolutions": provider.capabilities.supported_resolutions,
+                "supported_durations": provider.capabilities.supported_durations,
+                "supports_character_consistency": provider.capabilities.supports_character_consistency,
+                "disclaimer": provider.capabilities.disclaimer
             })
         return result
 
