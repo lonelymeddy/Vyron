@@ -1,6 +1,29 @@
 services:
   # ===================================================
-  # VYRON AI - Backend FastAPI Web Service
+  # VYRON AI - Unified Full-Stack Service (Frontend + Backend)
+  # Deploys both Next.js & FastAPI together on a single port
+  # ===================================================
+  - type: web
+    name: vyron-unified
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r backend/requirements.txt && npm --prefix frontend install && npm --prefix frontend run build"
+    startCommand: "python3 start.py"
+    envVars:
+      - key: APP_NAME
+        value: "VYRON AI"
+      - key: APP_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEFAULT_AI_PROVIDER
+        value: mock_engine
+      - key: DATABASE_URL
+        value: sqlite:///./vyron.db
+
+  # ===================================================
+  # Optional: Split Architecture Backend
   # ===================================================
   - type: web
     name: vyron-backend
@@ -25,7 +48,7 @@ services:
         value: mock_engine
 
   # ===================================================
-  # VYRON AI - Frontend Next.js Web Service
+  # Optional: Split Architecture Frontend
   # ===================================================
   - type: web
     name: vyron-frontend

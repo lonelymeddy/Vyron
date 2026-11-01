@@ -1,5 +1,5 @@
-const RAW_API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://vyron-1uaj.onrender.com";
+// If NEXT_PUBLIC_API_URL is provided, use it; otherwise fallback to empty string (same-origin relative URLs)
+const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 export const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 
 export type GenerationMode = "CHARACTER_REPLACEMENT" | "FULL_CGI_RECREATION" | "ORIGINAL_CGI_CREATION";
