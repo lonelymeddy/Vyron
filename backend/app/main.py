@@ -38,6 +38,8 @@ raw_origins = [
     "https://vyron-frontend.onrender.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 if settings.ALLOWED_ORIGINS:
     raw_origins.extend([o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()])
@@ -48,7 +50,7 @@ origins = sorted(list(set([o for o in raw_origins if o and o != "*"])))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if origins else ["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.onrender\.com",
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.onrender\.com|https://.*\.railway\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

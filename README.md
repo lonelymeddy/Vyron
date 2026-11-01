@@ -36,44 +36,50 @@ VYRON AI is an AI-powered cinematic 3D video and virtual-world creation platform
 
 ---
 
-## 3. Repository Structure
+## 3. Quick Start & Unified Deployment (Frontend + Backend Merged)
 
-```
-.
-├── backend/
-│   ├── app/
-│   │   ├── ai_engine/       # Modular AI provider system (Base, Kling, Runway, Mock)
-│   │   ├── db/              # SQLAlchemy session, models, and init_db script
-│   │   ├── routers/         # FastAPI REST routers (auth, characters, projects, generations, credits, world_3d)
-│   │   ├── services/        # VideoProcessor FFmpeg service
-│   │   ├── auth.py          # JWT authentication dependencies & password hashing
-│   │   ├── config.py        # Environment settings (Pydantic BaseSettings)
-│   │   ├── main.py          # FastAPI core entrypoint & CORS middleware
-│   │   └── schemas.py       # Pydantic request/response schemas
-│   ├── tests/
-│   │   └── test_api.py      # Automated API integration test suite
-│   └── requirements.txt     # Python backend dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── app/             # Next.js App Router pages (/, /auth/*, /dashboard, /create, /characters, /projects, /generations, /settings)
-│   │   ├── components/      # UI components & AppLayout sidebar
-│   │   └── lib/             # Centralized API fetch client (`api.ts`)
-│   ├── package.json
-│   └── tsconfig.json
-├── render.yaml              # Render Blueprint deployment configuration
-├── vercel.json              # Vercel deployment configuration
-├── .env.example             # Template environment variables
-└── README.md
-```
-
----
-
-## 4. Getting Started & Local Setup
+The application can run and deploy as a **single unified service** where Next.js serves the frontend and automatically proxies `/api/*`, `/static/uploads/*`, `/docs`, and `/openapi.json` to the internal FastAPI backend.
 
 ### Prerequisites
 - Node.js >= v20
 - Python >= 3.10
 - FFmpeg (for video metadata parsing & thumbnail generation)
+
+### Unified Build Command
+Run this in the repository root to install dependencies and compile the Next.js frontend:
+
+```bash
+pip install -r backend/requirements.txt && npm --prefix frontend install && npm --prefix frontend run build
+```
+
+Or using root npm scripts:
+```bash
+npm run build
+```
+
+### Unified Startup Command
+Run this to launch both the FastAPI backend and Next.js frontend concurrently under a single public port:
+
+```bash
+python3 start.py
+```
+
+Or using root npm scripts / shell script:
+```bash
+npm start
+# or
+bash scripts/start.sh
+```
+
+- Web Application: `http://localhost:3000` (or the `$PORT` assigned by host)
+- API Endpoints: `http://localhost:3000/api/*`
+- Interactive API Docs: `http://localhost:3000/docs`
+
+---
+
+## 4. Local Development (Separate Services)
+
+If you prefer running frontend and backend in separate terminal windows:
 
 ### 1. Backend Setup
 ```bash
@@ -100,81 +106,61 @@ The application will be accessible at `http://localhost:3000`.
 
 ---
 
-## 5. Deployment Guide (Render, Vercel & Hosting Platforms)
+## 5. Deployment Guide (Render, Railway, Vercel, Docker)
 
-### Deploying on Render
+### Option 1: Unified Single-Service Deployment (Recommended)
 
-#### Option A: Using Render Blueprint (`render.yaml`)
-1. Push this repository to GitHub/GitLab.
-2. In Render Dashboard, select **New +** -> **Blueprint**.
-3. Connect your repository. Render will automatically detect `render.yaml` and configure both the backend FastAPI Web Service and frontend Next.js Web Service.
+Deploy everything as a single web service. Next.js serves the frontend UI and proxies `/api/*` and `/docs` to FastAPI running on an internal port.
 
-#### Option B: Manual Web Service Setup on Render
+#### Render
+1. Create a **Web Service** in Render.
+2. Select your repository.
+3. Configure the settings:
+   - **Environment:** `Python 3`
+   - **Build Command:**
+     ```bash
+     pip install -r backend/requirements.txt && npm --prefix frontend install && npm --prefix frontend run build
+     ```
+   - **Start Command:**
+     ```bash
+     python3 start.py
+     ```
+   - **Environment Variables:**
+     - `APP_NAME`: `VYRON AI`
+     - `APP_ENV`: `production`
+     - `SECRET_KEY`: `<generate-32-char-random-key>`
+     - `DEFAULT_AI_PROVIDER`: `mock_engine`
+     - `DATABASE_URL`: `sqlite:///./vyron.db` (or PostgreSQL connection string)
+     - `NEXT_PUBLIC_API_URL`: *(Leave empty to use same-origin relative API proxying)*
 
-**1. Backend Web Service (`vyron-backend`)**
+#### Railway / VPS / Docker
+- **Build Command:** `npm run build`
+- **Start Command:** `npm start` (or `python3 start.py`)
+- Sets `PORT` automatically and routes traffic to the unified server.
+
+---
+
+### Option 2: Split Architecture Deployment
+
+#### 1. Backend Web Service (`vyron-backend`)
 - **Environment:** Python 3
 - **Root Directory:** `backend`
-- **Build Command:**
-  ```bash
-  pip install -r requirements.txt
-  ```
-- **Start Command:**
-  ```bash
-  PYTHONPATH=. python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
-  ```
-- **Environment Variables:**
-  - `APP_ENV`: `production`
-  - `SECRET_KEY`: `<your-random-32-character-secret>`
-  - `FRONTEND_URL`: `https://vyron-1uaj.onrender.com`
-  - `ALLOWED_ORIGINS`: `https://vyron-1uaj.onrender.com,https://vyron-frontend.onrender.com`
-  - `DATABASE_URL`: Optional (PostgreSQL connection string; defaults to SQLite if omitted)
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `PYTHONPATH=. python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
-**2. Frontend Web Service (`vyron-frontend`)**
+#### 2. Frontend Web Service (`vyron-frontend`)
 - **Environment:** Node
 - **Root Directory:** `frontend`
-- **Build Command:**
-  ```bash
-  npm install && npm run build
-  ```
-- **Start Command:**
-  ```bash
-  npm start
-  ```
+- **Build Command:** `npm install && npm run build`
+- **Start Command:** `npm start`
 - **Environment Variables:**
-  - `NEXT_PUBLIC_API_URL`: `https://vyron-1uaj.onrender.com`
-
----
-
-### Deploying Frontend on Vercel
-
-1. Import the repository in Vercel.
-2. Set **Root Directory** to `frontend`.
-3. Framework Preset: **Next.js**.
-4. Set Environment Variable:
-   - `NEXT_PUBLIC_API_URL`: `https://vyron-1uaj.onrender.com` (deployed FastAPI backend URL).
-5. Click **Deploy**.
-
----
-
-### Deploying on Railway / Other Platforms
-
-- **Backend:**
-  - Root Directory: `backend`
-  - Build Command: `pip install -r requirements.txt`
-  - Start Command: `PYTHONPATH=. python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-  - Set `FRONTEND_URL` and `ALLOWED_ORIGINS` to match your frontend domain.
-
-- **Frontend:**
-  - Root Directory: `frontend`
-  - Build Command: `npm run build`
-  - Start Command: `npm start`
-  - Set `NEXT_PUBLIC_API_URL` to point to the backend service.
+  - `NEXT_PUBLIC_API_URL`: `<deployed-backend-url>` (e.g., `https://vyron-backend.onrender.com`)
 
 ---
 
 ## 6. Running Automated Tests
 
-To run the backend test suite covering Authentication, Character CRUD, Project Management, Credit Accounting, and AI Generation job submission:
+To run the backend test suite:
 
 ```bash
 PYTHONPATH=backend pytest backend/tests/

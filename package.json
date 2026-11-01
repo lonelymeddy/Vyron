@@ -1,0 +1,28 @@
+{
+  "name": "vyron-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VYRON AI — Cinematic 3D video & virtual-world creation platform",
+  "scripts": {
+    "install:backend": "pip install -r backend/requirements.txt",
+    "install:frontend": "npm --prefix frontend install",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "init:db": "PYTHONPATH=backend python3 backend/app/db/init_db.py",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "pip install -r backend/requirements.txt && npm --prefix frontend install && npm --prefix frontend run build",
+    "start:backend": "PYTHONPATH=backend python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000",
+    "start:frontend": "npm --prefix frontend start",
+    "start": "python3 start.py",
+    "dev": "python3 start.py",
+    "test:backend": "PYTHONPATH=backend pytest backend/tests",
+    "test": "npm run test:backend"
+  },
+  "keywords": [
+    "vyron-ai",
+    "cinematic",
+    "fastapi",
+    "nextjs"
+  ],
+  "author": "VYRON AI Studio",
+  "license": "UNLICENSED"
+}
