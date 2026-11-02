@@ -537,3 +537,158 @@ class EditorProjectDataResponse(BaseModel):
     shots: List[EditorShotData] = []
     overall_qc: Optional[QualityControlResponse] = None
     active_export: Optional[ExportJobResponse] = None
+
+
+# -------------------------------------------------------------------------
+# NEW SUBSYSTEM SCHEMAS (ENVIRONMENT, AI MODELS, WORKERS, SETTINGS)
+# -------------------------------------------------------------------------
+
+class EnvironmentAssetSchema(BaseModel):
+    id: str
+    environment_id: str
+    asset_name: str
+    category: str
+    model_format: str
+    file_path: str
+    file_size: Optional[int] = None
+    position: List[float] = []
+    rotation: List[float] = []
+    scale: List[float] = []
+    material_properties: Optional[Dict[str, Any]] = None
+    is_reusable: bool = True
+
+    class Config:
+        from_attributes = True
+
+
+class EnvironmentCreate(BaseModel):
+    name: str
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    theme: str = "tactical_pubg"
+    map_location: Optional[str] = None
+    weather: str = "clear"
+    time_of_day: str = "golden_hour"
+    preview_url: Optional[str] = None
+    scene_config: Optional[Dict[str, Any]] = None
+
+
+class EnvironmentResponse(BaseModel):
+    id: str
+    user_id: Optional[str] = None
+    name: str
+    slug: str
+    description: Optional[str] = None
+    theme: str
+    map_location: Optional[str] = None
+    weather: str
+    time_of_day: str
+    preview_url: Optional[str] = None
+    scene_config: Optional[Dict[str, Any]] = None
+    is_preset: bool
+    is_active: bool
+    created_at: datetime
+    assets: List[EnvironmentAssetSchema] = []
+
+    class Config:
+        from_attributes = True
+
+
+class ModelVersionSchema(BaseModel):
+    id: str
+    model_id: str
+    version_tag: str
+    file_size_bytes: Optional[int] = None
+    file_sha256: Optional[str] = None
+    download_url: Optional[str] = None
+    local_path: Optional[str] = None
+    is_verified: bool
+    verified_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ModelRecordSchema(BaseModel):
+    id: str
+    name: str
+    category: str
+    version: str
+    source_repo: Optional[str] = None
+    license: str
+    license_url: Optional[str] = None
+    is_installed: bool
+    is_active: bool
+    default_weight_file: str
+    local_weight_path: Optional[str] = None
+    vram_recommended_mb: int
+    requires_gpu: bool
+    supports_cpu_fallback: bool
+    supported_inputs: List[str] = []
+    output_format: Optional[str] = None
+    metadata_json: Optional[Dict[str, Any]] = None
+    description: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class WorkerTaskSchema(BaseModel):
+    id: str
+    worker_id: Optional[str] = None
+    task_type: str
+    entity_id: str
+    status: JobStatus
+    priority: int
+    progress_percentage: int
+    input_payload: Optional[Dict[str, Any]] = None
+    output_payload: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+    retry_count: int
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class WorkerRecordSchema(BaseModel):
+    id: str
+    worker_name: str
+    worker_type: str
+    status: str
+    capabilities: List[str] = []
+    current_job_id: Optional[str] = None
+    gpu_device_name: Optional[str] = None
+    gpu_vram_total_mb: int = 0
+    gpu_vram_used_mb: int = 0
+    cpu_cores: int = 4
+    ram_total_mb: int = 8192
+    ram_used_mb: int = 2048
+    last_heartbeat: datetime
+    endpoint_url: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class WorkerHeartbeat(BaseModel):
+    worker_name: str
+    status: str = "ONLINE"
+    gpu_vram_used_mb: Optional[int] = None
+    ram_used_mb: Optional[int] = None
+    current_job_id: Optional[str] = None
+
+
+class SystemSettingSchema(BaseModel):
+    key: str
+    value: str
+    description: Optional[str] = None
+    is_secret: bool
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

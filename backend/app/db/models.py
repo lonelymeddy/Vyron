@@ -466,3 +466,213 @@ class ExportJob(Base):
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
+
+
+# -------------------------------------------------------------------------
+# NEW ARCHITECTURAL SUBSYSTEM ENTITIES (SECTIONS 3, 4, 5, 6, 7, 8)
+# -------------------------------------------------------------------------
+
+class Environment(Base):
+    """
+    3D Virtual Environments and Worlds (e.g., Erangel Ruins, Sosnovka Base).
+    Supports terrain, layout, atmosphere, lighting configurations, and asset links.
+    """
+    __tablename__ = "environments"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    name = Column(String, nullable=False)
+    slug = Column(String, unique=True, index=True, nullable=False)
+    description = Column(Text, nullable=True)
+    theme = Column(String, nullable=False, default="tactical_pubg")
+    map_location = Column(String, nullable=True)
+    weather = Column(String, nullable=False, default="clear")
+    time_of_day = Column(String, nullable=False, default="golden_hour")
+    preview_url = Column(String, nullable=True)
+    scene_config = Column(JSON, nullable=True)
+    is_preset = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    assets = relationship("EnvironmentAsset", back_populates="environment", cascade="all, delete-orphan")
+
+
+class EnvironmentAsset(Base):
+    """
+    Assets positioned inside 3D Environments (buildings, vehicles, props, terrain meshes).
+    """
+    __tablename__ = "environment_assets"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    environment_id = Column(String, ForeignKey("environments.id", ondelete="CASCADE"), nullable=False, index=True)
+    asset_name = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    model_format = Column(String, nullable=False, default="glb")
+    file_path = Column(String, nullable=False)
+    file_size = Column(Integer, nullable=True)
+    position = Column(JSON, default=list)
+    rotation = Column(JSON, default=list)
+    scale = Column(JSON, default=list)
+    material_properties = Column(JSON, nullable=True)
+    is_reusable = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    environment = relationship("Environment", back_populates="assets")
+
+
+class VideoAnalysisResult(Base):
+    """
+    Persistent video analysis records: scene detection, frame rates,
+    character tracking bounding boxes, and camera motion estimations.
+    """
+    __tablename__ = "video_analysis_results"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    video_path = Column(String, nullable=False)
+    duration_seconds = Column(Float, nullable=False)
+    total_frames = Column(Integer, nullable=False)
+    fps = Column(Float, nullable=False)
+    resolution = Column(String, nullable=False)
+    has_audio = Column(Boolean, default=False)
+    shot_count = Column(Integer, default=1)
+    detected_shots = Column(JSON, nullable=False)
+    character_tracking = Column(JSON, nullable=True)
+    camera_movement = Column(JSON, nullable=True)
+    lighting_profile = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ReconstructionBlueprintModel(Base):
+    """
+    Persistent reconstruction blueprint detailing character replacement strategy,
+    continuity checks, 3D character integration plans, and compositing parameters.
+    """
+    __tablename__ = "reconstruction_blueprints"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    analysis_id = Column(String, ForeignKey("video_analysis_results.id", ondelete="SET NULL"), nullable=True)
+    reconstruction_strategy = Column(String, nullable=False, default="ADAPTIVE_3D_HYBRID")
+    estimated_complexity = Column(String, default="MODERATE")
+    total_shots = Column(Integer, default=1)
+    character_replacement_plan = Column(JSON, nullable=False)
+    camera_reconstruction_plan = Column(JSON, nullable=False)
+    lighting_match_profile = Column(JSON, nullable=True)
+    continuity_rules = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ModelRecord(Base):
+    """
+    Central AI Model Registry tracking local and open-source models (TripoSR, U2-Net, MediaPipe).
+    """
+    __tablename__ = "model_records"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    version = Column(String, nullable=False, default="1.0.0")
+    source_repo = Column(String, nullable=True)
+    license = Column(String, nullable=False, default="MIT")
+    license_url = Column(String, nullable=True)
+    is_installed = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    default_weight_file = Column(String, nullable=False)
+    local_weight_path = Column(String, nullable=True)
+    vram_recommended_mb = Column(Integer, default=0)
+    requires_gpu = Column(Boolean, default=False)
+    supports_cpu_fallback = Column(Boolean, default=True)
+    supported_inputs = Column(JSON, default=list)
+    output_format = Column(String, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    versions = relationship("ModelVersion", back_populates="model", cascade="all, delete-orphan")
+
+
+class ModelVersion(Base):
+    """
+    Specific version record for an AI model, tracking hash, weights, and compatibility.
+    """
+    __tablename__ = "model_versions"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    model_id = Column(String, ForeignKey("model_records.id", ondelete="CASCADE"), nullable=False, index=True)
+    version_tag = Column(String, nullable=False)
+    file_size_bytes = Column(Integer, nullable=True)
+    file_sha256 = Column(String, nullable=True)
+    download_url = Column(String, nullable=True)
+    local_path = Column(String, nullable=True)
+    is_verified = Column(Boolean, default=False)
+    verified_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    model = relationship("ModelRecord", back_populates="versions")
+
+
+class WorkerRecord(Base):
+    """
+    Background worker node registration and health monitoring (GPU/CPU nodes).
+    """
+    __tablename__ = "worker_records"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    worker_name = Column(String, nullable=False, unique=True)
+    worker_type = Column(String, nullable=False, default="cpu")
+    status = Column(String, nullable=False, default="ONLINE")
+    capabilities = Column(JSON, default=list)
+    current_job_id = Column(String, nullable=True)
+    gpu_device_name = Column(String, nullable=True)
+    gpu_vram_total_mb = Column(Integer, default=0)
+    gpu_vram_used_mb = Column(Integer, default=0)
+    cpu_cores = Column(Integer, default=4)
+    ram_total_mb = Column(Integer, default=8192)
+    ram_used_mb = Column(Integer, default=2048)
+    last_heartbeat = Column(DateTime, default=datetime.utcnow)
+    endpoint_url = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    tasks = relationship("WorkerTask", back_populates="worker")
+
+
+class WorkerTask(Base):
+    """
+    Asynchronous task assigned to background processing workers.
+    """
+    __tablename__ = "worker_tasks"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    worker_id = Column(String, ForeignKey("worker_records.id", ondelete="SET NULL"), nullable=True, index=True)
+    task_type = Column(String, nullable=False)
+    entity_id = Column(String, nullable=False)
+    status = Column(Enum(JobStatus), nullable=False, default=JobStatus.QUEUED)
+    priority = Column(Integer, default=5)
+    progress_percentage = Column(Integer, default=0)
+    input_payload = Column(JSON, nullable=True)
+    output_payload = Column(JSON, nullable=True)
+    error_message = Column(Text, nullable=True)
+    retry_count = Column(Integer, default=0)
+    max_retries = Column(Integer, default=3)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    worker = relationship("WorkerRecord", back_populates="tasks")
+
+
+class SystemSetting(Base):
+    """
+    Centralized persistent configuration and platform settings.
+    """
+    __tablename__ = "system_settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    is_secret = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
