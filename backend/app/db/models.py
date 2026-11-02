@@ -240,3 +240,98 @@ class UsageLog(Base):
     action = Column(String, nullable=False)
     details = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class ShotAdjustment(Base):
+    __tablename__ = "shot_adjustments"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    shot_id = Column(Integer, nullable=False, index=True)
+
+    # Character placement
+    pos_x = Column(Float, default=0.0)
+    pos_y = Column(Float, default=0.0)
+    pos_z = Column(Float, default=0.0)
+    scale = Column(Float, default=1.0)
+    rotation_y = Column(Float, default=0.0)
+    ground_offset = Column(Float, default=0.0)
+
+    # Character animation
+    speed = Column(Float, default=1.0)
+    offset_sec = Column(Float, default=0.0)
+    root_movement = Column(Boolean, default=True)
+
+    # Camera
+    camera_pos_x = Column(Float, default=0.0)
+    camera_pos_y = Column(Float, default=0.0)
+    camera_pos_z = Column(Float, default=0.0)
+    camera_fov = Column(Float, default=50.0)
+    camera_movement = Column(String, default="standard")
+
+    # Lighting
+    light_intensity = Column(Float, default=1.0)
+    light_color_temp = Column(Float, default=5500.0)
+    light_direction = Column(String, default="ambient")
+
+    # Scene
+    environment_alignment = Column(Float, default=0.0)
+
+    # General override settings payload
+    custom_params = Column(JSON, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class ShotRenderVersion(Base):
+    __tablename__ = "shot_render_versions"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    shot_id = Column(Integer, nullable=False, index=True)
+    version_number = Column(Integer, nullable=False, default=1)
+    video_url = Column(String, nullable=False)
+    storage_path = Column(String, nullable=True)
+    duration = Column(Float, nullable=True)
+    resolution = Column(String, nullable=True)
+    fps = Column(Float, nullable=True)
+    is_selected = Column(Boolean, default=True)
+    status = Column(Enum(JobStatus), nullable=False, default=JobStatus.COMPLETED)
+    adjustments_snapshot = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class QualityControlReport(Base):
+    __tablename__ = "quality_control_reports"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    shot_id = Column(Integer, nullable=True, index=True)
+    target_type = Column(String, nullable=False, default="shot")  # 'shot' or 'assembled_video'
+    video_path = Column(String, nullable=False)
+    total_frames = Column(Integer, default=0)
+    missing_frames = Column(Integer, default=0)
+    black_frames = Column(Integer, default=0)
+    fps_measured = Column(Float, nullable=True)
+    has_audio = Column(Boolean, default=False)
+    character_detected = Column(Boolean, default=True)
+    continuity_status = Column(String, default="PASS")
+    issues = Column(JSON, default=list)
+    manual_review_required = Column(Boolean, default=False)
+    review_flags = Column(JSON, default=list)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class ExportJob(Base):
+    __tablename__ = "export_jobs"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(Enum(JobStatus), nullable=False, default=JobStatus.QUEUED)
+    progress_percentage = Column(Integer, default=0)
+    resolution = Column(String, default="original")  # 720p, 1080p, original
+    fps = Column(Integer, default=30)
+    format = Column(String, default="mp4")
+    audio_config = Column(JSON, nullable=True)
+    output_url = Column(String, nullable=True)
+    storage_path = Column(String, nullable=True)
+    duration = Column(Float, nullable=True)
+    file_size = Column(Integer, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)

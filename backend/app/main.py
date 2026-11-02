@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.db.init_db import init_db
-from app.routers import auth, characters, projects, generations, credits, world_3d
+from app.routers import auth, characters, projects, generations, credits, world_3d, editor
 
 os.makedirs("static/uploads/characters", exist_ok=True)
 os.makedirs("static/uploads/videos", exist_ok=True)
@@ -62,6 +62,7 @@ app.include_router(projects.router, prefix="/api")
 app.include_router(generations.router, prefix="/api")
 app.include_router(credits.router, prefix="/api")
 app.include_router(world_3d.router, prefix="/api")
+app.include_router(editor.router, prefix="/api")
 
 
 @app.get("/")

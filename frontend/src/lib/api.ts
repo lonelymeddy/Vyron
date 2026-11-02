@@ -128,6 +128,8 @@ export interface ProviderCapabilityInfo {
   disclaimer: string;
 }
 
+export * from "./editor_types";
+
 export interface GenerationShot {
   id: string;
   scene_number: number;
@@ -423,6 +425,59 @@ export const apiClient = {
 
     getHistory: async () => {
       return request<CreditTransaction[]>("/api/credits/history");
+    },
+  },
+
+  editor: {
+    getData: async (projectId: string) => {
+      return request<any>(`/api/projects/${projectId}/editor`);
+    },
+
+    getAdjustments: async (projectId: string, shotId: number) => {
+      return request<any>(`/api/projects/${projectId}/shots/${shotId}/adjustments`);
+    },
+
+    updateAdjustments: async (projectId: string, shotId: number, data: any) => {
+      return request<any>(`/api/projects/${projectId}/shots/${shotId}/adjustments`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+
+    regenerateShot: async (projectId: string, shotId: number, startTime: number, endTime: number) => {
+      return request<any>(`/api/projects/${projectId}/shots/${shotId}/regenerate?start_time=${startTime}&end_time=${endTime}`, {
+        method: "POST",
+      });
+    },
+
+    getVersions: async (projectId: string, shotId: number) => {
+      return request<any[]>(`/api/projects/${projectId}/shots/${shotId}/versions`);
+    },
+
+    selectVersion: async (projectId: string, shotId: number, versionId: string) => {
+      return request<any>(`/api/projects/${projectId}/shots/${shotId}/versions/${versionId}/select`, {
+        method: "POST",
+      });
+    },
+
+    runQualityControl: async (projectId: string, shotId?: number) => {
+      const url = shotId
+        ? `/api/projects/${projectId}/quality-control?shot_id=${shotId}`
+        : `/api/projects/${projectId}/quality-control`;
+      return request<any>(url, {
+        method: "POST",
+      });
+    },
+
+    triggerExport: async (projectId: string, data: { resolution: string; fps: number; format: string; audio_config?: any }) => {
+      return request<any>(`/api/projects/${projectId}/export`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    getExportStatus: async (projectId: string, exportId: string) => {
+      return request<any>(`/api/projects/${projectId}/export/${exportId}`);
     },
   },
 };

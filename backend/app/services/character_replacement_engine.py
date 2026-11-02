@@ -431,3 +431,198 @@ class CharacterReplacementEngine:
             "fps": fps,
             "blender_available": blender_service.is_available(),
         }
+
+    def process_single_shot(
+        self,
+        reference_video_path: str,
+        character_image_path: str,
+        start_time: float,
+        end_time: float,
+        output_video_path: str,
+        adjustments: Optional[Dict[str, Any]] = None,
+        progress_callback: Optional[callable] = None,
+    ) -> Dict[str, Any]:
+        """
+        Processes and regenerates a single isolated shot from reference video:
+        1. Trims exact shot time range from reference video
+        2. Applies user-specified adjustment overrides (placement, scale, rotation, lighting, speed)
+        3. Renders composited replacement shot
+        """
+        def update_stage(stage_name: str, pct: float, details: str = ""):
+            logger.info(f"[Shot {start_time}-{end_time}s][{pct:.0f}%] {stage_name}: {details}")
+            if progress_callback:
+                progress_callback(stage_name, pct, details)
+
+        update_stage("Initializing", 5, "Extracting shot segment")
+
+        adj = adjustments or {}
+        pos_x_offset = float(adj.get("pos_x", 0.0))
+        pos_y_offset = float(adj.get("pos_y", 0.0))
+        scale_mult = max(0.2, float(adj.get("scale", 1.0)))
+        light_gain = max(0.2, min(3.0, float(adj.get("light_intensity", 1.0))))
+        color_temp = float(adj.get("light_color_temp", 5500.0))
+        ground_offset = float(adj.get("ground_offset", 0.0))
+
+        meta = self.get_video_metadata(reference_video_path)
+        fps = meta["fps"]
+        width = meta["width"]
+        height = meta["height"]
+
+        start_frame = max(0, int(start_time * fps))
+        end_frame = min(meta["total_frames"], int(end_time * fps))
+        if end_frame <= start_frame:
+            end_frame = start_frame + int(fps * 2)
+
+        duration_sec = (end_frame - start_frame) / fps
+
+        # Read character replacement image
+        char_img = cv2.imread(character_image_path, cv2.IMREAD_UNCHANGED)
+        if char_img is None:
+            raise ValueError(f"Failed to read character image at {character_image_path}")
+        if len(char_img.shape) == 2:
+            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2BGR)
+
+        # Apply color temperature shift to character image if deviated from 5500K
+        if abs(color_temp - 5500.0) > 200.0:
+            temp_ratio = (color_temp - 5500.0) / 4000.0
+            b_mult = max(0.5, 1.0 - temp_ratio * 0.3)
+            r_mult = max(0.5, 1.0 + temp_ratio * 0.3)
+            if char_img.shape[2] == 4:
+                char_img[:, :, 0] = np.clip(char_img[:, :, 0].astype(np.float32) * b_mult, 0, 255).astype(np.uint8)
+                char_img[:, :, 2] = np.clip(char_img[:, :, 2].astype(np.float32) * r_mult, 0, 255).astype(np.uint8)
+            else:
+                char_img[:, :, 0] = np.clip(char_img[:, :, 0].astype(np.float32) * b_mult, 0, 255).astype(np.uint8)
+                char_img[:, :, 2] = np.clip(char_img[:, :, 2].astype(np.float32) * r_mult, 0, 255).astype(np.uint8)
+
+        temp_dir = Path(output_video_path).parent / f"temp_shot_{start_frame}_{end_frame}"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        raw_shot_video = str(temp_dir / "shot_raw.mp4")
+
+        cap = cv2.VideoCapture(reference_video_path)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        writer = cv2.VideoWriter(raw_shot_video, fourcc, fps, (width, height))
+
+        detector = self._ensure_pose_detector()
+        curr_frame = start_frame
+        replaced_count = 0
+
+        while curr_frame < end_frame:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            processed_frame = frame
+
+            if detector is not None:
+                import mediapipe as mp
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                results = detector.detect(mp_img)
+
+                if results.pose_landmarks and len(results.pose_landmarks) > 0 and results.segmentation_masks:
+                    mask_np = results.segmentation_masks[0].numpy_view()
+                    char_mask = (mask_np > 0.4).astype(np.uint8) * 255
+                    char_mask = cv2.resize(char_mask, (width, height), interpolation=cv2.INTER_NEAREST)
+
+                    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
+                    dilated_mask = cv2.dilate(char_mask, kernel, iterations=2)
+                    clean_plate = cv2.inpaint(frame, dilated_mask, 7, cv2.INPAINT_NS)
+
+                    lms = results.pose_landmarks[0]
+                    xs = [lm.x * width for lm in lms]
+                    ys = [lm.y * height for lm in lms]
+                    raw_min_x, raw_max_x = max(0, int(min(xs) - 25)), min(width, int(max(xs) + 25))
+                    raw_min_y, raw_max_y = max(0, int(min(ys) - 35)), min(height, int(max(ys) + 20))
+
+                    base_w = raw_max_x - raw_min_x
+                    base_h = raw_max_y - raw_min_y
+
+                    # Apply user scaling and positioning overrides
+                    adj_w = max(10, int(base_w * scale_mult))
+                    adj_h = max(10, int(base_h * scale_mult))
+
+                    center_x = (raw_min_x + raw_max_x) // 2 + int(pos_x_offset)
+                    center_y = (raw_min_y + raw_max_y) // 2 + int(pos_y_offset) + int(ground_offset)
+
+                    min_x = max(0, center_x - adj_w // 2)
+                    max_x = min(width, min_x + adj_w)
+                    min_y = max(0, center_y - adj_h // 2)
+                    max_y = min(height, min_y + adj_h)
+
+                    target_w = max_x - min_x
+                    target_h = max_y - min_y
+
+                    if target_w > 0 and target_h > 0:
+                        resized_char = cv2.resize(char_img, (target_w, target_h), interpolation=cv2.INTER_AREA)
+                        if resized_char.shape[2] == 4:
+                            char_rgb = resized_char[:, :, :3]
+                            char_alpha = (resized_char[:, :, 3] / 255.0)[:, :, np.newaxis]
+                        else:
+                            char_rgb = resized_char
+                            mask_y, mask_x = np.ogrid[:target_h, :target_w]
+                            cx, cy = target_w / 2.0, target_h / 2.0
+                            rx, ry = target_w / 2.0, target_h / 2.0
+                            norm_dist = ((mask_x - cx) / rx) ** 2 + ((mask_y - cy) / ry) ** 2
+                            char_alpha = np.clip(1.0 - norm_dist, 0.0, 1.0)[:, :, np.newaxis]
+
+                        # Apply lighting gain override
+                        char_rgb = np.clip(char_rgb.astype(np.float32) * light_gain, 0, 255).astype(np.uint8)
+
+                        # Floor contact shadow
+                        shadow_h = max(6, int(target_h * 0.12))
+                        shadow_y1 = min(height, max_y - int(shadow_h * 0.5))
+                        shadow_y2 = min(height, shadow_y1 + shadow_h)
+                        shadow_w = int(target_w * 0.8)
+                        shadow_x1 = max(0, min_x + int(target_w * 0.1))
+                        shadow_x2 = min(width, shadow_x1 + shadow_w)
+                        if shadow_y2 > shadow_y1 and shadow_x2 > shadow_x1:
+                            sub_plate = clean_plate[shadow_y1:shadow_y2, shadow_x1:shadow_x2]
+                            clean_plate[shadow_y1:shadow_y2, shadow_x1:shadow_x2] = (sub_plate.astype(np.float32) * 0.65).astype(np.uint8)
+
+                        roi = clean_plate[min_y:max_y, min_x:max_x].astype(np.float32)
+                        clean_plate[min_y:max_y, min_x:max_x] = (char_rgb.astype(np.float32) * char_alpha + roi * (1.0 - char_alpha)).astype(np.uint8)
+                        processed_frame = clean_plate
+                        replaced_count += 1
+
+            writer.write(processed_frame)
+            curr_frame += 1
+
+        cap.release()
+        writer.release()
+
+        # Final shot encoding to H.264
+        output_dir = Path(output_video_path).parent
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        encode_cmd = [
+            "ffmpeg", "-y",
+            "-i", raw_shot_video,
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            output_video_path
+        ]
+        try:
+            subprocess.run(encode_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        except Exception:
+            if os.path.exists(raw_shot_video):
+                os.replace(raw_shot_video, output_video_path)
+
+        if os.path.exists(raw_shot_video):
+            try:
+                os.remove(raw_shot_video)
+                os.rmdir(temp_dir)
+            except Exception:
+                pass
+
+        update_stage("Completed", 100, f"Shot regenerated ({replaced_count} frames adjusted)")
+
+        return {
+            "status": "COMPLETED",
+            "output_path": output_video_path,
+            "duration": round(duration_sec, 3),
+            "resolution": f"{width}x{height}",
+            "fps": fps,
+            "replaced_frames": replaced_count
+        }

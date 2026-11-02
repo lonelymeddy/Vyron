@@ -271,3 +271,155 @@ class ProviderCapabilityInfo(BaseModel):
     supported_durations: List[int]
     supports_character_consistency: bool
     disclaimer: str
+
+# Editor & Shot Refinement Schemas
+class ShotAdjustmentSchema(BaseModel):
+    id: Optional[str] = None
+    project_id: str
+    shot_id: int
+    pos_x: float = 0.0
+    pos_y: float = 0.0
+    pos_z: float = 0.0
+    scale: float = 1.0
+    rotation_y: float = 0.0
+    ground_offset: float = 0.0
+    speed: float = 1.0
+    offset_sec: float = 0.0
+    root_movement: bool = True
+    camera_pos_x: float = 0.0
+    camera_pos_y: float = 0.0
+    camera_pos_z: float = 0.0
+    camera_fov: float = 50.0
+    camera_movement: str = "standard"
+    light_intensity: float = 1.0
+    light_color_temp: float = 5500.0
+    light_direction: str = "ambient"
+    environment_alignment: float = 0.0
+    custom_params: Optional[Dict[str, Any]] = None
+
+    class Config:
+        from_attributes = True
+
+class ShotAdjustmentUpdate(BaseModel):
+    pos_x: Optional[float] = None
+    pos_y: Optional[float] = None
+    pos_z: Optional[float] = None
+    scale: Optional[float] = None
+    rotation_y: Optional[float] = None
+    ground_offset: Optional[float] = None
+    speed: Optional[float] = None
+    offset_sec: Optional[float] = None
+    root_movement: Optional[bool] = None
+    camera_pos_x: Optional[float] = None
+    camera_pos_y: Optional[float] = None
+    camera_pos_z: Optional[float] = None
+    camera_fov: Optional[float] = None
+    camera_movement: Optional[str] = None
+    light_intensity: Optional[float] = None
+    light_color_temp: Optional[float] = None
+    light_direction: Optional[str] = None
+    environment_alignment: Optional[float] = None
+    custom_params: Optional[Dict[str, Any]] = None
+
+class ShotRenderVersionResponse(BaseModel):
+    id: str
+    project_id: str
+    shot_id: int
+    version_number: int
+    video_url: str
+    duration: Optional[float] = None
+    resolution: Optional[str] = None
+    fps: Optional[float] = None
+    is_selected: bool
+    status: JobStatus
+    adjustments_snapshot: Optional[Dict[str, Any]] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class QualityControlIssue(BaseModel):
+    category: str
+    severity: str
+    description: str
+    timestamp: Optional[float] = None
+    frame_number: Optional[int] = None
+
+class QualityControlResponse(BaseModel):
+    id: str
+    project_id: str
+    shot_id: Optional[int] = None
+    target_type: str
+    video_path: str
+    total_frames: int
+    missing_frames: int
+    black_frames: int
+    fps_measured: Optional[float] = None
+    has_audio: bool
+    character_detected: bool
+    continuity_status: str
+    issues: List[Dict[str, Any]] = []
+    manual_review_required: bool
+    review_flags: List[str] = []
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class VideoAssembleRequest(BaseModel):
+    audio_mode: str = "original"
+    audio_url: Optional[str] = None
+    audio_volume: float = 1.0
+
+class ExportJobRequest(BaseModel):
+    resolution: str = "original"
+    fps: int = 30
+    format: str = "mp4"
+    audio_config: Optional[Dict[str, Any]] = None
+
+class ExportJobResponse(BaseModel):
+    id: str
+    project_id: str
+    status: JobStatus
+    progress_percentage: int
+    resolution: str
+    fps: int
+    format: str
+    output_url: Optional[str] = None
+    duration: Optional[float] = None
+    file_size: Optional[int] = None
+    error_message: Optional[str] = None
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class EditorShotData(BaseModel):
+    shot_id: int
+    start_time: float
+    end_time: float
+    duration: float
+    start_frame: int
+    end_frame: int
+    camera_type: str
+    has_character: bool
+    action_description: str
+    reconstruction_approach: str
+    adjustments: ShotAdjustmentSchema
+    versions: List[ShotRenderVersionResponse] = []
+    active_version: Optional[ShotRenderVersionResponse] = None
+    qc_report: Optional[QualityControlResponse] = None
+
+class EditorProjectDataResponse(BaseModel):
+    project_id: str
+    title: str
+    generation_mode: str
+    status: JobStatus
+    reference_video_url: Optional[str] = None
+    reference_metadata: Optional[Dict[str, Any]] = None
+    reconstructed_video_url: Optional[str] = None
+    total_duration: float = 0.0
+    shots: List[EditorShotData] = []
+    overall_qc: Optional[QualityControlResponse] = None
+    active_export: Optional[ExportJobResponse] = None
