@@ -1,7 +1,6 @@
 import React from "react";
 import Link from "next/link";
 import {
-  Clapperboard,
   Sparkles,
   Video,
   Layers,
@@ -12,7 +11,7 @@ import {
   Zap,
   Film
 } from "lucide-react";
-import { Button, Card, Badge } from "@/components/ui";
+import { Button, Card, Badge, Logo } from "@/components/ui";
 
 export default function LandingPage() {
   return (
@@ -20,8 +19,8 @@ export default function LandingPage() {
       {/* NAVIGATION */}
       <nav className="h-20 border-b border-slate-800/80 px-6 max-w-7xl w-full mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center glow-violet transition-transform group-hover:scale-105">
-            <Clapperboard className="w-5 h-5 text-white" />
+          <div className="relative flex items-center justify-center transition-transform group-hover:scale-105">
+            <Logo size={42} priority />
           </div>
           <div>
             <span className="font-extrabold text-xl tracking-wider text-white block leading-none">VYRON AI</span>
@@ -172,8 +171,8 @@ export default function LandingPage() {
       <footer className="mt-auto border-t border-slate-800/80 py-8 px-6 text-center text-slate-500 text-xs">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg gradient-brand flex items-center justify-center">
-              <Clapperboard className="w-3.5 h-3.5 text-white" />
+            <div className="relative flex items-center justify-center">
+              <Logo size={24} />
             </div>
             <span className="font-bold text-slate-300">VYRON AI</span>
             <span className="text-slate-600">&bull;</span>
