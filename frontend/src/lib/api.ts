@@ -86,6 +86,37 @@ export interface Storyboard {
   updated_at: string;
 }
 
+export interface ReconstructionShotBlueprint {
+  shot_id: number;
+  start_time: number;
+  end_time: number;
+  duration: number;
+  start_frame: number;
+  end_frame: number;
+  camera_type: string;
+  has_character: boolean;
+  pose_summary?: Record<string, any>;
+  reconstruction_approach: string;
+  action_description: string;
+}
+
+export interface ReconstructionBlueprint {
+  version: string;
+  reference_metadata: {
+    duration: number;
+    width: number;
+    height: number;
+    fps: number;
+    total_frames: number;
+    has_audio: boolean;
+    audio_codec?: string;
+  };
+  character_reference?: string;
+  total_shots: number;
+  shots: ReconstructionShotBlueprint[];
+  audio_preservation: boolean;
+}
+
 export interface ProviderCapabilityInfo {
   name: string;
   display_name: string;
@@ -355,6 +386,10 @@ export const apiClient = {
 
     getProviders: async () => {
       return request<ProviderCapabilityInfo[]>("/api/generations/providers");
+    },
+
+    getBlueprint: async (projectId: string) => {
+      return request<ReconstructionBlueprint>(`/api/generations/blueprint/${projectId}`);
     },
 
     generateStoryboard: async (projectId: string) => {

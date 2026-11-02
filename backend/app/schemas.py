@@ -24,6 +24,27 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
+class ReconstructionShotBlueprint(BaseModel):
+    shot_id: int
+    start_time: float
+    end_time: float
+    duration: float
+    start_frame: int
+    end_frame: int
+    camera_type: str
+    has_character: bool
+    pose_summary: Optional[Dict[str, Any]] = None
+    reconstruction_approach: str
+    action_description: str
+
+class ReconstructionBlueprintResponse(BaseModel):
+    version: str = "1.0.0"
+    reference_metadata: Dict[str, Any]
+    character_reference: Optional[str] = None
+    total_shots: int
+    shots: List[ReconstructionShotBlueprint]
+    audio_preservation: bool = True
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

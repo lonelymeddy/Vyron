@@ -3,10 +3,18 @@ import logging
 from typing import Dict, Any, List, Optional
 from app.ai_engine.schemas import StoryboardPlan, StoryboardScene
 from app.services.video_processor import video_processor
+from app.services.character_replacement_engine import CharacterReplacementEngine
 
 logger = logging.getLogger(__name__)
 
 class VideoAnalysisService:
+    def __init__(self):
+        self._engine = CharacterReplacementEngine()
+
+    def get_reconstruction_blueprint(self, video_path: str, character_image_path: Optional[str] = None) -> Dict[str, Any]:
+        """Runs the forensic video decomposition and returns a machine-readable reconstruction blueprint."""
+        return self._engine.generate_reconstruction_blueprint(video_path, character_image_path)
+
     @staticmethod
     def analyze_source_video(video_path: str, project_id: str, title: str = "Recreation Project") -> StoryboardPlan:
         meta = video_processor.extract_metadata(video_path)
