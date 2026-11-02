@@ -3,38 +3,6 @@ from typing import Dict, Any, Optional
 from app.ai_engine.base import BaseAIProvider, AIJobRequest, AIJobResponse
 from app.db.models import GenerationMode, JobStatus
 
-class MockEngineProvider(BaseAIProvider):
-    provider_name = "mock_engine"
-    display_name = "VYRON AI Cinematic Engine (Dev/Fallback)"
-
-    def supports_mode(self, mode: GenerationMode) -> bool:
-        return True
-
-    def is_configured(self) -> bool:
-        return True
-
-    async def submit_job(self, request: AIJobRequest) -> AIJobResponse:
-        return AIJobResponse(
-            job_id=request.job_id,
-            provider_name=self.provider_name,
-            provider_job_id=f"mock_job_{request.job_id}",
-            status=JobStatus.PROCESSING,
-            progress_percentage=25,
-            logs=f"Mock Engine: Initiated CGI render for mode {request.mode.value}."
-        )
-
-    async def get_job_status(self, provider_job_id: str) -> AIJobResponse:
-        return AIJobResponse(
-            job_id=provider_job_id.replace("mock_job_", ""),
-            provider_name=self.provider_name,
-            provider_job_id=provider_job_id,
-            status=JobStatus.COMPLETED,
-            progress_percentage=100,
-            generated_video_url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            thumbnail_url="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop",
-            logs="Mock Engine: Render finished successfully."
-        )
-
 class KlingAIProvider(BaseAIProvider):
     provider_name = "kling"
     display_name = "Kling AI Video Generator"

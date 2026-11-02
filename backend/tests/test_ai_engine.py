@@ -2,7 +2,7 @@ import pytest
 import os
 from unittest.mock import patch, MagicMock
 from app.ai_engine.capabilities import (
-    ProviderCapability, MOCK_CAPABILITIES, RUNWAY_CAPABILITIES, KLING_CAPABILITIES
+    ProviderCapability, VYRON_RECONSTRUCTION_CAPABILITIES, RUNWAY_CAPABILITIES, KLING_CAPABILITIES
 )
 from app.ai_engine.registry import ai_registry
 from app.ai_engine.schemas import (
@@ -10,7 +10,6 @@ from app.ai_engine.schemas import (
 )
 from app.ai_engine.kling import KlingAIProvider
 from app.ai_engine.runway import RunwayAIProvider
-from app.ai_engine.mock import MockEngineProvider
 from app.ai_engine.exceptions import (
     ProviderNotConfiguredError, ProviderAuthenticationError
 )
@@ -19,9 +18,10 @@ from app.services.character_service import character_service
 from app.services.customization import customization_parser
 from app.services.video_analysis import video_analysis_service
 from app.services.video_assembly import video_assembly_service
+from app.services.blender_service import blender_service
 
 def test_capabilities_definitions():
-    assert MOCK_CAPABILITIES.supports(ProviderCapability.IMAGE_TO_VIDEO)
+    assert VYRON_RECONSTRUCTION_CAPABILITIES.supports(ProviderCapability.VIDEO_TO_VIDEO)
     assert RUNWAY_CAPABILITIES.supports(ProviderCapability.VIDEO_TO_VIDEO)
     assert KLING_CAPABILITIES.supports(ProviderCapability.CAMERA_CONTROL)
     assert not KLING_CAPABILITIES.supports(ProviderCapability.VIDEO_TO_VIDEO)
@@ -30,15 +30,15 @@ def test_ai_provider_registry_discovery():
     providers = ai_registry.list_available_providers()
     assert len(providers) >= 3
     names = [p["name"] for p in providers]
-    assert "mock_engine" in names
+    assert "vyron_reconstruction_engine" in names
     assert "runway" in names
     assert "kling" in names
+    assert "mock_engine" not in names
 
-    mock_p = ai_registry.get_provider("mock_engine")
-    assert mock_p is not None
-    assert mock_p.is_configured()
+    vyron_p = ai_registry.get_provider("vyron_reconstruction_engine")
+    assert vyron_p is not None
+    assert vyron_p.is_configured()
 
-    # When unconfigured, selects mock fallback
     selected = ai_registry.select_best_provider(GenerationMode.ORIGINAL_CGI_CREATION)
     assert selected is not None
 
@@ -75,23 +75,28 @@ async def test_runway_provider_unconfigured_error():
         await runway.submit_shot(shot, req)
 
 @pytest.mark.asyncio
-async def test_mock_engine_shot_lifecycle():
-    mock_p = MockEngineProvider()
+async def test_vyron_reconstruction_provider_lifecycle():
+    vyron_p = ai_registry.get_provider("vyron_reconstruction_engine")
+    assert vyron_p is not None
     shot = ShotPlan(
         shot_id="shot_lifecycle_1", scene_number=1, prompt_text="Tactical operative",
         character_action="Approaching vehicle", camera_direction="cinematic_orbit",
         environment_desc="erangel_pubg"
     )
     req = GenerationJobRequest(
-        job_id="j1", project_id="p1", mode=GenerationMode.ORIGINAL_CGI_CREATION,
+        job_id="j1", project_id="p1", mode=GenerationMode.CHARACTER_REPLACEMENT,
         character_image_url="https://example.com/c.png"
     )
-    sub = await mock_p.submit_shot(shot, req)
-    assert sub.task_id.startswith("mock_task_")
+    sub = await vyron_p.submit_shot(shot, req)
+    assert sub.task_id.startswith("vyron_rec_")
+    assert sub.status == JobStatus.COMPLETED
 
-    st = await mock_p.get_task_status(sub.task_id)
+    st = await vyron_p.get_task_status(sub.task_id)
     assert st.status == JobStatus.COMPLETED
-    assert st.video_url is not None
+    assert st.progress_percentage == 100
+
+def test_blender_service_availability():
+    assert blender_service.is_available() is True
 
 def test_character_service_analysis():
     prof = character_service.analyze_character_image("test_operative.png", character_id="char_123")

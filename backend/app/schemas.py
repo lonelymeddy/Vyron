@@ -150,7 +150,7 @@ class StoryboardUpdate(BaseModel):
 
 class GenerationCreate(BaseModel):
     project_id: str
-    provider_name: Optional[str] = "mock_engine"
+    provider_name: Optional[str] = "vyron_reconstruction_engine"
 
 class GenerationJobResponse(BaseModel):
     id: str

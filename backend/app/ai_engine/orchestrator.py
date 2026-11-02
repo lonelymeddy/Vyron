@@ -39,11 +39,19 @@ class GenerationOrchestrator:
                 logger.info(f"Submitting shot #{shot.scene_number} (attempt {attempt}) to {provider.provider_name}")
                 sub = await provider.submit_shot(shot, request)
                 shot.provider_task_id = sub.task_id
+
+                # If provider completes synchronously (e.g., local Blender rendering)
+                if sub.status == JobStatus.COMPLETED:
+                    status_resp = await provider.get_task_status(shot.provider_task_id)
+                    shot.status = JobStatus.COMPLETED
+                    shot.output_url = status_resp.video_url
+                    return shot
+
                 shot.status = JobStatus.PROCESSING
 
                 poll_count = 0
                 while poll_count < 60:
-                    await asyncio.sleep(0.5 if provider.provider_name == "mock_engine" else 3.0)
+                    await asyncio.sleep(1.0)
                     poll_count += 1
                     status_resp = await provider.get_task_status(shot.provider_task_id)
 

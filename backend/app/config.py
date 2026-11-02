@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     STORAGE_SECRET_ACCESS_KEY: str = ""
     STORAGE_PUBLIC_URL: str = "http://localhost:8000/static"
 
-    DEFAULT_AI_PROVIDER: str = "mock_engine"
+    DEFAULT_AI_PROVIDER: str = "vyron_reconstruction_engine"
     KLING_API_KEY: str = ""
     KLING_API_BASE_URL: str = "https://api.klingai.com/v1"
     RUNWAY_API_KEY: str = ""
