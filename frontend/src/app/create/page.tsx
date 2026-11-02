@@ -21,7 +21,7 @@ import {
   Eye
 } from "lucide-react";
 import {
-  apiClient, Character, GenerationMode, ProviderCapabilityInfo, Storyboard, StoryboardScene
+  apiClient, Character, GenerationMode, ProviderCapabilityInfo, Storyboard, StoryboardScene, ReconstructionBlueprint
 } from "@/lib/api";
 
 function CreatorContent() {
@@ -66,6 +66,11 @@ function CreatorContent() {
   const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
   const [showStoryboardModal, setShowStoryboardModal] = useState(false);
   const [analyzingStoryboard, setAnalyzingStoryboard] = useState(false);
+
+  // Reconstruction Blueprint State (for Mode 1)
+  const [blueprint, setBlueprint] = useState<ReconstructionBlueprint | null>(null);
+  const [showBlueprintModal, setShowBlueprintModal] = useState(false);
+  const [analyzingBlueprint, setAnalyzingBlueprint] = useState(false);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -186,6 +191,47 @@ function CreatorContent() {
       setToastMessage({ type: "error", text: err.message || "Failed to generate storyboard." });
     } finally {
       setAnalyzingStoryboard(false);
+    }
+  };
+
+  const handleAnalyzeReferenceBlueprint = async () => {
+    if (!videoFile && !referenceVideo) {
+      setToastMessage({ type: "error", text: "Upload a reference video before analyzing reconstruction blueprint." });
+      return;
+    }
+
+    setAnalyzingBlueprint(true);
+    setToastMessage(null);
+
+    try {
+      let charId = selectedCharId;
+      if (!charId && charFile) {
+        const uploadedChar = await apiClient.characters.uploadImage(charFile, characterName || "Avatar Reference");
+        charId = String(uploadedChar.id);
+        setSelectedCharId(charId);
+      }
+
+      // Create draft project
+      const proj = await apiClient.projects.create({
+        title: title || "Character Replacement Project",
+        generation_mode: mode,
+        character_id: charId || null,
+        prompt_instructions: prompt,
+        settings: { environment, outfit, vehicle, lighting, weather, camera_motion: cameraMotion }
+      });
+
+      if (videoFile) {
+        await apiClient.projects.uploadSourceVideo(proj.id, videoFile);
+      }
+
+      const bp = await apiClient.generations.getBlueprint(proj.id);
+      setBlueprint(bp);
+      setShowBlueprintModal(true);
+      setToastMessage({ type: "success", text: `Analyzed reference video: ${bp.total_shots} shots identified.` });
+    } catch (err: any) {
+      setToastMessage({ type: "error", text: err.message || "Failed to analyze reference video blueprint." });
+    } finally {
+      setAnalyzingBlueprint(false);
     }
   };
 
@@ -460,6 +506,20 @@ function CreatorContent() {
             </div>
           )}
 
+          {mode === "CHARACTER_REPLACEMENT" && (referenceVideo || videoFile) && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              isLoading={analyzingBlueprint}
+              onClick={handleAnalyzeReferenceBlueprint}
+              className="w-full text-xs"
+            >
+              <Eye className="w-4 h-4 mr-1.5 text-cyan-400" />
+              Analyze Video & Preview Reconstruction Blueprint
+            </Button>
+          )}
+
           {mode === "FULL_CGI_RECREATION" && (referenceVideo || videoFile) && (
             <Button
               type="button"
@@ -475,6 +535,47 @@ function CreatorContent() {
           )}
         </Card>
       </div>
+
+      {/* RECONSTRUCTION BLUEPRINT MODAL */}
+      {showBlueprintModal && blueprint && (
+        <Card className="border border-cyan-500/30 bg-cyan-950/10 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-cyan-400" />
+              <h3 className="font-bold text-slate-100 text-sm">
+                Forensic Reconstruction Blueprint ({blueprint.total_shots} Shots, {blueprint.reference_metadata.fps} FPS)
+              </h3>
+            </div>
+            <button
+              onClick={() => setShowBlueprintModal(false)}
+              className="text-xs text-slate-400 hover:text-white"
+            >
+              Close Blueprint
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {blueprint.shots.map((shot, idx) => (
+              <div key={idx} className="bg-slate-900/80 border border-slate-800 rounded-lg p-3 text-xs space-y-1.5">
+                <div className="flex items-center justify-between font-bold text-cyan-300">
+                  <span>Shot #{shot.shot_id}</span>
+                  <span>{shot.duration}s</span>
+                </div>
+                <div className="text-[11px] text-slate-300">
+                  <p><strong>Action:</strong> {shot.action_description}</p>
+                  <p><strong>Camera:</strong> {shot.camera_type}</p>
+                  <p><strong>Approach:</strong> <span className="text-cyan-400">{shot.reconstruction_approach.replace('APPROACH_', '')}</span></p>
+                  {shot.has_character && (
+                    <Badge variant="purple" className="mt-1">
+                      33-Landmark Pose Active
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* STORYBOARD PREVIEW MODAL / DRAWER */}
       {showStoryboardModal && storyboard && (

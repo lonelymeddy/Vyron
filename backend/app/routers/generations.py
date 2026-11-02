@@ -12,7 +12,8 @@ from app.db.models import (
 )
 from app.schemas import (
     GenerationCreate, GenerationResponse, ProviderCapabilityInfo,
-    StoryboardResponse, StoryboardUpdate, StoryboardSceneSchema
+    StoryboardResponse, StoryboardUpdate, StoryboardSceneSchema,
+    ReconstructionBlueprintResponse
 )
 from app.auth import get_current_user
 from app.config import settings
@@ -25,6 +26,7 @@ from app.services.video_analysis import video_analysis_service
 from app.services.character_service import character_service
 from app.services.customization import customization_parser
 from app.services.video_assembly import video_assembly_service
+from app.services.character_replacement_engine import CharacterReplacementEngine
 
 router = APIRouter(prefix="/generations", tags=["AI Generation Center"])
 
@@ -97,6 +99,60 @@ def process_generation_background(generation_id: str, user_id: str, db: Optional
             return
 
         generation.started_at = datetime.utcnow()
+
+        # Check if project is Character Replacement mode with a source video
+        if project.generation_mode == GenerationMode.CHARACTER_REPLACEMENT and project.source_videos and project.character:
+            src_vid_path = project.source_videos[0].storage_path or project.source_videos[0].video_url
+            char_path = project.character.storage_path or project.character.image_url
+
+            if os.path.exists(src_vid_path) and os.path.exists(char_path):
+                # Execute Reference-Driven Character Replacement Engine locally
+                generation.status = JobStatus.ANALYZING
+                generation.progress_percentage = 15
+                project.status = JobStatus.ANALYZING
+                db.commit()
+
+                out_filename = f"char_replace_{generation.id}.mp4"
+                uploads_dir = Path("static/uploads")
+                uploads_dir.mkdir(parents=True, exist_ok=True)
+                out_path = str(uploads_dir / out_filename)
+
+                engine = CharacterReplacementEngine()
+
+                def update_job_step(stage: str, pct: float, msg: str):
+                    generation.progress_percentage = int(pct)
+                    db.commit()
+                    sub_job = GenerationJob(
+                        generation_id=generation.id,
+                        step_name=f"Character Replacement - {stage}",
+                        status=JobStatus.COMPLETED if pct >= 100 else JobStatus.PROCESSING,
+                        logs=msg
+                    )
+                    db.add(sub_job)
+                    db.commit()
+
+                res = engine.process_character_replacement(
+                    reference_video_path=src_vid_path,
+                    character_image_path=char_path,
+                    output_video_path=out_path,
+                    progress_callback=update_job_step
+                )
+
+                generation.status = JobStatus.COMPLETED
+                generation.progress_percentage = 100
+                generation.completed_at = datetime.utcnow()
+                project.status = JobStatus.COMPLETED
+
+                gen_video = GeneratedVideo(
+                    generation_id=generation.id,
+                    video_url=f"/static/uploads/{out_filename}",
+                    thumbnail_url=project.character.image_url,
+                    duration_seconds=float(res.get("duration", 15.0)),
+                    resolution=res.get("resolution", "720x1066")
+                )
+                db.add(gen_video)
+                db.commit()
+                return
 
         # Step 1: Character reference analysis
         generation.status = JobStatus.ANALYZING
@@ -305,6 +361,38 @@ def process_generation_background(generation_id: str, user_id: str, db: Optional
     finally:
         if should_close:
             db.close()
+
+
+@router.get("/blueprint/{project_id}", response_model=ReconstructionBlueprintResponse)
+def get_project_reconstruction_blueprint(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns forensic decomposition and reconstruction blueprint for a project's reference video.
+    """
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not project.source_videos:
+        raise HTTPException(status_code=400, detail="No reference video uploaded for this project")
+
+    video_path = project.source_videos[0].storage_path or project.source_videos[0].video_url
+    if not os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail="Reference video file not found on disk")
+
+    char_img = None
+    if project.character:
+        char_img = project.character.storage_path or project.character.image_url
+
+    engine = CharacterReplacementEngine()
+    blueprint = engine.generate_reconstruction_blueprint(video_path, char_img)
+    return blueprint
 
 
 @router.get("/providers", response_model=List[ProviderCapabilityInfo])
