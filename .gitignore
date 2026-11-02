@@ -63,3 +63,8 @@ Thumbs.db
 uploads/
 temp/
 media/
+
+# Storage generated outputs and models
+storage/
+static/uploads/models/
+static/uploads/exports/
