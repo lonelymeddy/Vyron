@@ -120,12 +120,15 @@ export interface ReconstructionBlueprint {
 export interface ProviderCapabilityInfo {
   name: string;
   display_name: string;
+  provider_type?: "internal" | "external";
+  requires_api_key?: boolean;
   is_configured: boolean;
   capabilities: string[];
   supported_resolutions: string[];
   supported_durations: number[];
   supports_character_consistency: boolean;
   disclaimer: string;
+  dependencies?: Record<string, boolean>;
 }
 
 export * from "./editor_types";

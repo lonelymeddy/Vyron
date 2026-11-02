@@ -265,12 +265,15 @@ class WorldPreset(BaseModel):
 class ProviderCapabilityInfo(BaseModel):
     name: str
     display_name: str
+    provider_type: str = "internal"  # "internal" | "external"
+    requires_api_key: bool = False
     is_configured: bool
     capabilities: List[str]
     supported_resolutions: List[str]
     supported_durations: List[int]
     supports_character_consistency: bool
     disclaimer: str
+    dependencies: Optional[Dict[str, bool]] = None
 
 # Editor & Shot Refinement Schemas
 class ShotAdjustmentSchema(BaseModel):

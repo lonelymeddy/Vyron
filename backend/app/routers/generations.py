@@ -70,12 +70,50 @@ def process_generation_background(generation_id: str, user_id: str, db: Optional
         provider_key = PROVIDER_NAME_MAP.get(generation.provider_name, generation.provider_name)
         provider = ai_registry.get_provider(provider_key)
 
-        if not provider or not provider.is_configured():
+        if not provider:
             generation.status = JobStatus.FAILED
             generation.error_message = (
-                f"AI Provider '{generation.provider_name}' is not configured on this server. "
-                "Please configure API keys in environment or select an available provider."
+                f"AI Provider '{generation.provider_name}' is unknown or not registered. "
+                "Please select an available provider."
             )
+            project.status = JobStatus.FAILED
+
+            failed_job = GenerationJob(
+                generation_id=generation.id,
+                step_name="Provider Verification",
+                status=JobStatus.FAILED,
+                logs=f"Error: {generation.error_message}"
+            )
+            db.add(failed_job)
+
+            credit = db.query(Credit).filter(Credit.user_id == user_id).first()
+            if credit:
+                credit.balance += 10
+                refund_tx = CreditTransaction(
+                    user_id=user_id,
+                    amount=10,
+                    description=f"Refund for unconfigured AI provider job: {project.title}"
+                )
+                db.add(refund_tx)
+
+            db.commit()
+            return
+
+        if not provider.is_configured():
+            generation.status = JobStatus.FAILED
+            if getattr(provider.capabilities, "provider_type", "external") == "internal":
+                deps = getattr(provider, "get_dependencies_status", lambda: {})()
+                missing = [k for k, v in deps.items() if not v]
+                generation.error_message = (
+                    f"VYRON internal reconstruction engine is not fully initialized. "
+                    f"Missing local system dependencies: {', '.join(missing) if missing else 'Required processing libraries'}. "
+                    "Please ensure dependencies are installed on the server/worker."
+                )
+            else:
+                generation.error_message = (
+                    f"External AI Provider '{generation.provider_name}' is not configured on this server. "
+                    "Please configure the corresponding API key in environment variables or select an available provider."
+                )
             project.status = JobStatus.FAILED
 
             failed_job = GenerationJob(
