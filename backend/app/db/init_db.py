@@ -9,7 +9,8 @@ from app.db.session import engine, Base
 from app.db.models import (
     User, Character, Project, SourceVideo, Generation,
     GenerationJob, GeneratedVideo, Credit, CreditTransaction,
-    AIProvider, UsageLog
+    AIProvider, UsageLog, ShotAdjustment, ShotRenderVersion,
+    QualityControlReport, ExportJob
 )
 
 logging.basicConfig(level=logging.INFO)

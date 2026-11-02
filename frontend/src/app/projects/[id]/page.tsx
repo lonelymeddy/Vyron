@@ -142,7 +142,7 @@ function VideoResultContent() {
             )}
           </Card>
 
-          {/* DOWNLOAD & SPECS */}
+          {/* DOWNLOAD, PRODUCTION STUDIO & SPECS */}
           {generatedVideo && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-900/80 rounded-xl border border-slate-800">
               <div>
@@ -151,12 +151,20 @@ function VideoResultContent() {
                   Resolution: {project.settings?.resolution || "1080p"} &bull; FPS: 30 &bull; Format: MP4 &bull; Codec: H.264
                 </p>
               </div>
-              <a href={generatedVideo.video_url} download target="_blank" rel="noreferrer" className="shrink-0">
-                <Button size="sm">
-                  <Download className="w-4 h-4 mr-1.5" />
-                  Download Video File
-                </Button>
-              </a>
+              <div className="flex items-center gap-2">
+                <Link href={`/projects/${project.id}/editor`}>
+                  <Button size="sm" className="bg-violet-600 hover:bg-violet-500 shadow-lg shadow-violet-900/20">
+                    <Film className="w-4 h-4 mr-1.5" />
+                    Open Cinematic Studio
+                  </Button>
+                </Link>
+                <a href={generatedVideo.video_url} download target="_blank" rel="noreferrer" className="shrink-0">
+                  <Button size="sm" variant="outline">
+                    <Download className="w-4 h-4 mr-1.5" />
+                    Download File
+                  </Button>
+                </a>
+              </div>
             </div>
           )}
         </div>
