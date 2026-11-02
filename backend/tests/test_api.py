@@ -236,9 +236,21 @@ def test_unconfigured_ai_provider_refunds_credits(client, db_session):
     assert res_status.status_code == 200
     assert res_status.json()["status"] == "FAILED"
     assert "not configured" in res_status.json()["error_message"]
+    assert "API key" in res_status.json()["error_message"]
 
     # Credits refunded back to 100!
     assert client.get("/api/credits/balance", headers=headers).json()["balance"] == 100
+
+def test_internal_reconstruction_engine_provider_info(client):
+    res = client.get("/api/generations/providers")
+    assert res.status_code == 200
+    providers = res.json()
+    vyron_prov = next((p for p in providers if p["name"] == "vyron_reconstruction_engine"), None)
+    assert vyron_prov is not None
+    assert vyron_prov["provider_type"] == "internal"
+    assert vyron_prov["requires_api_key"] is False
+    assert vyron_prov["is_configured"] is True
+    assert "dependencies" in vyron_prov
 
 def test_user_resource_isolation(client):
     reg1 = client.post("/api/auth/register", json={"email": "userA@vyron.ai", "password": "Password123!"})

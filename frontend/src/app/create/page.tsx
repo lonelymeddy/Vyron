@@ -678,26 +678,75 @@ function CreatorContent() {
           </Select>
 
           <Select label="AI Provider Engine" value={aiProvider} onChange={(e) => handleProviderChange(e.target.value)}>
-            <option value="vyron_reconstruction_engine">VYRON Reference-Driven Cinematic Engine (Active)</option>
-            <option value="kling_ai">Kling AI Engine (Requires API Key)</option>
-            <option value="runway_gen3">Runway Gen-3 / Gen-4 (Requires API Key)</option>
+            {availableProviders.length > 0 ? (
+              <>
+                {availableProviders.some((p) => p.provider_type === "internal" || p.name === "vyron_reconstruction_engine") && (
+                  <optgroup label="Internal Reconstruction Engine">
+                    {availableProviders
+                      .filter((p) => p.provider_type === "internal" || p.name === "vyron_reconstruction_engine")
+                      .map((p) => (
+                        <option key={p.name} value={p.name}>
+                          {p.display_name} {p.is_configured ? "(Active / Ready)" : "(Missing Dependencies)"}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+                {availableProviders.some((p) => p.provider_type === "external" || (p.name !== "vyron_reconstruction_engine" && p.provider_type !== "internal")) && (
+                  <optgroup label="External AI Providers (Optional)">
+                    {availableProviders
+                      .filter((p) => p.provider_type === "external" || (p.name !== "vyron_reconstruction_engine" && p.provider_type !== "internal"))
+                      .map((p) => (
+                        <option key={p.name} value={p.name} disabled={!p.is_configured}>
+                          {p.display_name} {p.is_configured ? "(Configured)" : "(Unconfigured - Requires API Key)"}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+              </>
+            ) : (
+              <option value="vyron_reconstruction_engine">VYRON Reference-Driven Cinematic Engine (Active)</option>
+            )}
           </Select>
         </div>
 
         {/* PROVIDER CAPABILITY & DISCLAIMER BADGE */}
         {selectedProviderInfo && (
-          <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3 text-xs space-y-1.5">
+          <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3 text-xs space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-slate-300">
                 Engine: {selectedProviderInfo.display_name}
               </span>
-              <Badge variant={selectedProviderInfo.is_configured ? "success" : "warning"}>
-                {selectedProviderInfo.is_configured ? "Configured & Ready" : "Unconfigured (Env Key Required)"}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <Badge variant={selectedProviderInfo.provider_type === "internal" ? "cyan" : "purple"}>
+                  {selectedProviderInfo.provider_type === "internal" ? "Internal Engine" : "External Provider"}
+                </Badge>
+                <Badge variant={selectedProviderInfo.is_configured ? "success" : "warning"}>
+                  {selectedProviderInfo.is_configured
+                    ? "Ready"
+                    : selectedProviderInfo.provider_type === "internal"
+                    ? "Dependencies Missing"
+                    : "API Key Required"}
+                </Badge>
+              </div>
             </div>
             <p className="text-[11px] text-slate-400">
               {selectedProviderInfo.disclaimer}
             </p>
+            {selectedProviderInfo.dependencies && (
+              <div className="pt-2 border-t border-slate-800/80 flex flex-wrap gap-2 text-[10px]">
+                <span className="text-slate-400 font-medium">Local Engine Components:</span>
+                {Object.entries(selectedProviderInfo.dependencies).map(([dep, avail]) => (
+                  <span
+                    key={dep}
+                    className={`px-1.5 py-0.5 rounded font-mono ${
+                      avail ? "bg-emerald-950/40 text-emerald-400 border border-emerald-800/50" : "bg-rose-950/40 text-rose-400 border border-rose-800/50"
+                    }`}
+                  >
+                    {dep.toUpperCase()}: {avail ? "AVAILABLE" : "UNAVAILABLE"}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

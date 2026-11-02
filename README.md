@@ -32,7 +32,7 @@ VYRON AI is an AI-powered cinematic 3D video and virtual-world creation platform
 - **Database ORM:** SQLAlchemy with PostgreSQL schema & SQLite local fallback
 - **Authentication:** JWT (JSON Web Tokens) with passlib & bcrypt password encryption
 - **Video Processing:** FFmpeg / FFprobe wrapper for video metadata parsing and thumbnail extraction
-- **AI Orchestration:** Modular AI Provider System (`BaseAIProvider`, `AIProviderRegistry`, Kling AI, Runway Gen-3 Alpha, Mock Fallback Engine)
+- **AI Orchestration:** Internal Reference-Driven Reconstruction Engine (`VyronReconstructionProvider` using MediaPipe, OpenCV, PySceneDetect, FFmpeg, and Blender) alongside optional external provider integrations (Kling AI, Runway Gen-3 Alpha).
 
 ---
 
@@ -129,7 +129,7 @@ Deploy everything as a single web service. Next.js serves the frontend UI and pr
      - `APP_NAME`: `VYRON AI`
      - `APP_ENV`: `production`
      - `SECRET_KEY`: `<generate-32-char-random-key>`
-     - `DEFAULT_AI_PROVIDER`: `mock_engine`
+     - `DEFAULT_AI_PROVIDER`: `vyron_reconstruction_engine`
      - `DATABASE_URL`: `sqlite:///./vyron.db` (or PostgreSQL connection string)
      - `NEXT_PUBLIC_API_URL`: *(Leave empty to use same-origin relative API proxying)*
 

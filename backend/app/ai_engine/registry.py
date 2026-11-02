@@ -9,13 +9,47 @@ from app.ai_engine.schemas import ShotPlan, GenerationJobRequest, ProviderSubmis
 from app.services.blender_service import blender_service
 import os
 
+import shutil
+
 class VyronReconstructionProvider(BaseAIProvider):
     provider_name = "vyron_reconstruction_engine"
     display_name = "VYRON Reference-Driven Cinematic Engine"
     capabilities = VYRON_RECONSTRUCTION_CAPABILITIES
 
+    def get_dependencies_status(self) -> Dict[str, bool]:
+        """Check availability of required local processing components."""
+        has_cv2 = False
+        try:
+            import cv2
+            has_cv2 = True
+        except ImportError:
+            pass
+
+        has_mediapipe = False
+        try:
+            import mediapipe
+            has_mediapipe = True
+        except ImportError:
+            pass
+
+        has_ffmpeg = bool(shutil.which("ffmpeg"))
+        has_blender = blender_service.is_available()
+
+        return {
+            "opencv": has_cv2,
+            "mediapipe": has_mediapipe,
+            "ffmpeg": has_ffmpeg,
+            "blender": has_blender,
+        }
+
     def is_configured(self) -> bool:
-        return blender_service.is_available()
+        """
+        The internal reconstruction engine is native to VYRON AI.
+        It is configured when core image/video processing dependencies (OpenCV)
+        are present. It never requires third-party API keys.
+        """
+        deps = self.get_dependencies_status()
+        return deps["opencv"]
 
     async def submit_shot(self, shot: ShotPlan, request: GenerationJobRequest) -> ProviderSubmissionResponse:
         out_dir = os.path.join("static", "uploads", "blender_renders")
@@ -104,15 +138,19 @@ class AIProviderRegistry:
     def list_available_providers(self) -> List[Dict[str, Any]]:
         result = []
         for name, provider in self._providers.items():
+            deps = getattr(provider, "get_dependencies_status", lambda: None)()
             result.append({
                 "name": provider.provider_name,
                 "display_name": provider.display_name,
+                "provider_type": provider.capabilities.provider_type,
+                "requires_api_key": provider.capabilities.requires_api_key,
                 "is_configured": provider.is_configured(),
                 "capabilities": [c.value for c in provider.capabilities.capabilities],
                 "supported_resolutions": provider.capabilities.supported_resolutions,
                 "supported_durations": provider.capabilities.supported_durations,
                 "supports_character_consistency": provider.capabilities.supports_character_consistency,
-                "disclaimer": provider.capabilities.disclaimer
+                "disclaimer": provider.capabilities.disclaimer,
+                "dependencies": deps,
             })
         return result
 

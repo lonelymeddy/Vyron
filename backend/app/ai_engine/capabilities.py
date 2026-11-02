@@ -19,6 +19,8 @@ class ProviderCapability(str, Enum):
 class ProviderCapabilityProfile(BaseModel):
     provider_name: str
     display_name: str
+    provider_type: str = "internal"  # "internal" | "external"
+    requires_api_key: bool = False
     capabilities: List[ProviderCapability]
     supported_resolutions: List[str]
     supported_durations: List[int]
@@ -32,6 +34,8 @@ class ProviderCapabilityProfile(BaseModel):
 VYRON_RECONSTRUCTION_CAPABILITIES = ProviderCapabilityProfile(
     provider_name="vyron_reconstruction_engine",
     display_name="VYRON Reference-Driven Cinematic Engine",
+    provider_type="internal",
+    requires_api_key=False,
     capabilities=[
         ProviderCapability.VIDEO_TO_VIDEO,
         ProviderCapability.REFERENCE_IMAGE_CONDITIONING,
@@ -48,12 +52,14 @@ VYRON_RECONSTRUCTION_CAPABILITIES = ProviderCapabilityProfile(
     supported_durations=[5, 10, 15, 30],
     supports_character_consistency=True,
     requires_reference_video_for_replacement=True,
-    disclaimer="Native reference-driven engine utilizing MediaPipe skeletal tracking, OpenCV clean-plate inpainting, and Blender 3D scene reconstruction."
+    disclaimer="Native reference-driven engine utilizing MediaPipe skeletal tracking, OpenCV clean-plate inpainting, and Blender 3D scene reconstruction. Operates locally without external API keys."
 )
 
 RUNWAY_CAPABILITIES = ProviderCapabilityProfile(
     provider_name="runway",
     display_name="Runway Gen-3 Alpha / Gen-4 Turbo",
+    provider_type="external",
+    requires_api_key=True,
     capabilities=[
         ProviderCapability.IMAGE_TO_VIDEO,
         ProviderCapability.VIDEO_TO_VIDEO,
@@ -70,12 +76,14 @@ RUNWAY_CAPABILITIES = ProviderCapabilityProfile(
     supported_durations=[5, 10],
     supports_character_consistency=True,
     requires_reference_video_for_replacement=True,
-    disclaimer="Official Runway REST API integration (Gen-3/Gen-4). Video-to-video editing modifies input video guided by character references; frame-by-frame exact consistency depends on model latent space."
+    disclaimer="Official Runway REST API integration (Gen-3/Gen-4). Requires RUNWAY_API_KEY. Video-to-video editing modifies input video guided by character references."
 )
 
 KLING_CAPABILITIES = ProviderCapabilityProfile(
     provider_name="kling",
     display_name="Kling AI Video Generator",
+    provider_type="external",
+    requires_api_key=True,
     capabilities=[
         ProviderCapability.IMAGE_TO_VIDEO,
         ProviderCapability.REFERENCE_IMAGE_CONDITIONING,
@@ -88,5 +96,5 @@ KLING_CAPABILITIES = ProviderCapabilityProfile(
     supported_durations=[5, 10],
     supports_character_consistency=True,
     requires_reference_video_for_replacement=False,
-    disclaimer="Official Kling AI API integration. Supports image-to-video with explicit camera controls (orbit, pan, tilt, zoom). Video-to-video character replacement uses keyframe conditioning."
+    disclaimer="Official Kling AI API integration. Requires KLING_API_KEY. Supports image-to-video with explicit camera controls (orbit, pan, tilt, zoom)."
 )
