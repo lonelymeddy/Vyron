@@ -410,7 +410,7 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify({
           project_id: projectId,
-          provider_name: aiProvider || "mock_engine",
+          provider_name: aiProvider || "vyron_reconstruction_engine",
         }),
       });
     },

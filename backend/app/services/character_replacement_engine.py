@@ -12,6 +12,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 import cv2
 import numpy as np
+from app.services.blender_service import blender_service
 
 logger = logging.getLogger(__name__)
 
@@ -428,4 +429,5 @@ class CharacterReplacementEngine:
             "duration": meta["duration"],
             "resolution": f"{width}x{height}",
             "fps": fps,
+            "blender_available": blender_service.is_available(),
         }

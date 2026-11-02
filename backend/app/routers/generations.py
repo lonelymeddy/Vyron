@@ -35,7 +35,9 @@ PROVIDER_NAME_MAP = {
     "kling": "kling",
     "runway_gen3": "runway",
     "runway": "runway",
-    "mock_engine": "mock_engine",
+    "vyron_reconstruction_engine": "vyron_reconstruction_engine",
+    "vyron": "vyron_reconstruction_engine",
+    "vyron_engine": "vyron_reconstruction_engine",
 }
 
 def run_async_in_thread(coro):
@@ -314,7 +316,7 @@ def process_generation_background(generation_id: str, user_id: str, db: Optional
         generation.completed_at = datetime.utcnow()
         project.status = JobStatus.COMPLETED
 
-        thumbnail_url = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop"
+        thumbnail_url = project.character.image_url if project.character else None
         res_setting = "1080p"
         if project.settings and isinstance(project.settings, dict):
             res_setting = project.settings.get("resolution", "1080p")

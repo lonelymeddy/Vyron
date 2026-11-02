@@ -56,7 +56,7 @@ function CreatorContent() {
   const [animationStyle, setAnimationStyle] = useState("hyper_realistic");
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [resolution, setResolution] = useState("1080p");
-  const [aiProvider, setAiProvider] = useState("mock_engine");
+  const [aiProvider, setAiProvider] = useState("vyron_reconstruction_engine");
 
   // Providers & Capabilities
   const [availableProviders, setAvailableProviders] = useState<ProviderCapabilityInfo[]>([]);
@@ -678,7 +678,7 @@ function CreatorContent() {
           </Select>
 
           <Select label="AI Provider Engine" value={aiProvider} onChange={(e) => handleProviderChange(e.target.value)}>
-            <option value="mock_engine">VYRON High-Speed Engine (Active)</option>
+            <option value="vyron_reconstruction_engine">VYRON Reference-Driven Cinematic Engine (Active)</option>
             <option value="kling_ai">Kling AI Engine (Requires API Key)</option>
             <option value="runway_gen3">Runway Gen-3 / Gen-4 (Requires API Key)</option>
           </Select>

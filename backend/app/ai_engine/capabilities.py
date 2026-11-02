@@ -29,15 +29,26 @@ class ProviderCapabilityProfile(BaseModel):
     def supports(self, capability: ProviderCapability) -> bool:
         return capability in self.capabilities
 
-MOCK_CAPABILITIES = ProviderCapabilityProfile(
-    provider_name="mock_engine",
-    display_name="VYRON High-Speed Dev/Mock Engine",
-    capabilities=[c for c in ProviderCapability],
-    supported_resolutions=["720p", "1080p", "4K"],
-    supported_durations=[5, 10, 15],
+VYRON_RECONSTRUCTION_CAPABILITIES = ProviderCapabilityProfile(
+    provider_name="vyron_reconstruction_engine",
+    display_name="VYRON Reference-Driven Cinematic Engine",
+    capabilities=[
+        ProviderCapability.VIDEO_TO_VIDEO,
+        ProviderCapability.REFERENCE_IMAGE_CONDITIONING,
+        ProviderCapability.CHARACTER_REFERENCE_CONSISTENCY,
+        ProviderCapability.MOTION_TRANSFER,
+        ProviderCapability.VIDEO_EDITING,
+        ProviderCapability.SCENE_RECREATION,
+        ProviderCapability.CAMERA_CONTROL,
+        ProviderCapability.MULTIPLE_REFERENCE_IMAGES,
+        ProviderCapability.VIDEO_DURATION_CONTROLS,
+        ProviderCapability.RESOLUTION_CONTROLS,
+    ],
+    supported_resolutions=["720p", "1080p"],
+    supported_durations=[5, 10, 15, 30],
     supports_character_consistency=True,
     requires_reference_video_for_replacement=True,
-    disclaimer="Simulated engine for local testing, rapid iterations, and CI pipelines."
+    disclaimer="Native reference-driven engine utilizing MediaPipe skeletal tracking, OpenCV clean-plate inpainting, and Blender 3D scene reconstruction."
 )
 
 RUNWAY_CAPABILITIES = ProviderCapabilityProfile(

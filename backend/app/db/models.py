@@ -140,7 +140,7 @@ class Generation(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     provider_id = Column(String, nullable=True)
-    provider_name = Column(String, nullable=False, default="mock_engine")
+    provider_name = Column(String, nullable=False, default="vyron_reconstruction_engine")
     provider_task_id = Column(String, nullable=True)
     status = Column(Enum(JobStatus), nullable=False, default=JobStatus.QUEUED)
     progress_percentage = Column(Integer, default=0)

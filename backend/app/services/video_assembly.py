@@ -10,7 +10,7 @@ class VideoAssemblyService:
     @staticmethod
     def assemble_shots(shot_urls: List[str], output_filename: str) -> str:
         if not shot_urls:
-            return "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+            return ""
 
         local_files = []
         for url in shot_urls:

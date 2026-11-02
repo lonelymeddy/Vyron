@@ -181,10 +181,10 @@ def test_generation_execution_and_credit_deduction(client, db_session):
         "generation_mode": "FULL_CGI_RECREATION"
     }, headers=headers).json()
 
-    # Start generation with mock_engine
+    # Start generation with vyron_reconstruction_engine
     gen_res = client.post("/api/generations", json={
         "project_id": proj["id"],
-        "provider_name": "mock_engine"
+        "provider_name": "vyron_reconstruction_engine"
     }, headers=headers)
     assert gen_res.status_code == 201
     gen_id = gen_res.json()["id"]
