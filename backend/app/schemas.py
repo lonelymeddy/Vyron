@@ -72,11 +72,122 @@ class CharacterResponse(CharacterBase):
     file_size: Optional[int] = None
     mime_type: Optional[str] = None
     metadata_json: Optional[Dict[str, Any]] = None
+    active_generation_id: Optional[str] = None
+    model_asset_url: Optional[str] = None
+    rig_status: Optional[str] = "UNRIGGED"
+    animation_ready: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class CharacterReferenceImageResponse(BaseModel):
+    id: str
+    character_id: str
+    original_file_path: str
+    processed_file_path: Optional[str] = None
+    mask_file_path: Optional[str] = None
+    view_type: str
+    confidence: float
+    dimensions: Optional[str] = None
+    quality_metadata: Optional[Dict[str, Any]] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PipelineExecutionResponse(BaseModel):
+    id: str
+    generation_id: str
+    pipeline_number: int
+    stage_number: int
+    stage_name: str
+    status: str
+    input_metadata: Optional[Dict[str, Any]] = None
+    output_metadata: Optional[Dict[str, Any]] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    error_details: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CharacterAssetResponse(BaseModel):
+    id: str
+    character_id: str
+    generation_id: Optional[str] = None
+    asset_type: str
+    file_path: str
+    file_format: str
+    file_size: Optional[int] = None
+    metadata_json: Optional[Dict[str, Any]] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CharacterRigResponse(BaseModel):
+    id: str
+    character_id: str
+    asset_id: str
+    skeleton_type: str
+    bone_count: int
+    rig_status: str
+    has_deformation_tested: bool
+    validation_results: Optional[Dict[str, Any]] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CharacterQualityReportResponse(BaseModel):
+    id: str
+    generation_id: str
+    geometry_results: Optional[Dict[str, Any]] = None
+    texture_results: Optional[Dict[str, Any]] = None
+    rigging_results: Optional[Dict[str, Any]] = None
+    export_results: Optional[Dict[str, Any]] = None
+    overall_status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CharacterGenerationResponse(BaseModel):
+    id: str
+    character_id: str
+    generation_version: int
+    generation_mode: str
+    status: str
+    current_pipeline: int
+    current_stage: int
+    stage_name: str
+    progress_percentage: int
+    configuration: Optional[Dict[str, Any]] = None
+    error_details: Optional[str] = None
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    pipeline_executions: List[PipelineExecutionResponse] = []
+    assets: List[CharacterAssetResponse] = []
+    quality_report: Optional[CharacterQualityReportResponse] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CharacterGenerationCreate(BaseModel):
+    generation_mode: Optional[str] = "SINGLE_IMAGE"
+    target_polycount: Optional[int] = 30000
+    generate_rig: Optional[bool] = True
+    texture_resolution: Optional[int] = 2048
+    symmetry_mode: Optional[bool] = True
 
 class SourceVideoResponse(BaseModel):
     id: str

@@ -57,11 +57,142 @@ class Character(Base):
     file_size = Column(Integer, nullable=True)
     mime_type = Column(String, nullable=True)
     metadata_json = Column(JSON, nullable=True)
+    active_generation_id = Column(String, nullable=True)
+    model_asset_url = Column(String, nullable=True)
+    rig_status = Column(String, nullable=True, default="UNRIGGED")
+    animation_ready = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="characters")
     projects = relationship("Project", back_populates="character")
+    reference_images = relationship("CharacterReferenceImage", back_populates="character", cascade="all, delete-orphan")
+    generations_3d = relationship("CharacterGeneration", back_populates="character", cascade="all, delete-orphan")
+    assets = relationship("CharacterAsset", back_populates="character", cascade="all, delete-orphan")
+    rigs = relationship("CharacterRig", back_populates="character", cascade="all, delete-orphan")
+    variants = relationship("CharacterVariant", back_populates="character", cascade="all, delete-orphan")
+
+
+class CharacterReferenceImage(Base):
+    __tablename__ = "character_reference_images"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    character_id = Column(String, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True)
+    original_file_path = Column(String, nullable=False)
+    processed_file_path = Column(String, nullable=True)
+    mask_file_path = Column(String, nullable=True)
+    view_type = Column(String, nullable=False, default="unknown")  # front, back, left, right, three_quarter, face_closeup, full_body, unknown
+    confidence = Column(Float, default=0.0)
+    dimensions = Column(String, nullable=True)  # e.g. "1024x1024"
+    quality_metadata = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    character = relationship("Character", back_populates="reference_images")
+
+
+class CharacterGeneration(Base):
+    __tablename__ = "character_generations"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    character_id = Column(String, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True)
+    generation_version = Column(Integer, default=1)
+    generation_mode = Column(String, nullable=False, default="SINGLE_IMAGE")  # SINGLE_IMAGE, MULTI_IMAGE, ADVANCED
+    status = Column(String, nullable=False, default="QUEUED")  # QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED
+    current_pipeline = Column(Integer, default=1)  # 1 to 4
+    current_stage = Column(Integer, default=1)     # 1 to 20
+    stage_name = Column(String, default="Image Ingestion")
+    progress_percentage = Column(Integer, default=0)
+    configuration = Column(JSON, nullable=True)
+    error_details = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    character = relationship("Character", back_populates="generations_3d")
+    pipeline_executions = relationship("PipelineExecution", back_populates="generation", cascade="all, delete-orphan")
+    assets = relationship("CharacterAsset", back_populates="generation", cascade="all, delete-orphan")
+    quality_report = relationship("CharacterQualityReport", back_populates="generation", uselist=False, cascade="all, delete-orphan")
+
+
+class PipelineExecution(Base):
+    __tablename__ = "pipeline_executions"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    generation_id = Column(String, ForeignKey("character_generations.id", ondelete="CASCADE"), nullable=False, index=True)
+    pipeline_number = Column(Integer, nullable=False)  # 1, 2, 3, 4
+    stage_number = Column(Integer, nullable=False)     # 1 to 20
+    stage_name = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="QUEUED")  # QUEUED, PROCESSING, COMPLETED, FAILED, SKIPPED
+    input_metadata = Column(JSON, nullable=True)
+    output_metadata = Column(JSON, nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    error_details = Column(Text, nullable=True)
+
+    generation = relationship("CharacterGeneration", back_populates="pipeline_executions")
+
+
+class CharacterAsset(Base):
+    __tablename__ = "character_assets"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    character_id = Column(String, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True)
+    generation_id = Column(String, ForeignKey("character_generations.id", ondelete="CASCADE"), nullable=True, index=True)
+    asset_type = Column(String, nullable=False)  # initial_mesh, refined_mesh, textured_mesh, rigged_model, glb_export, fbx_export, obj_export, thumbnail
+    file_path = Column(String, nullable=False)
+    file_format = Column(String, nullable=False)  # glb, fbx, obj, ply, png
+    file_size = Column(Integer, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    character = relationship("Character", back_populates="assets")
+    generation = relationship("CharacterGeneration", back_populates="assets")
+    rig = relationship("CharacterRig", back_populates="asset", uselist=False, cascade="all, delete-orphan")
+
+
+class CharacterRig(Base):
+    __tablename__ = "character_rigs"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    character_id = Column(String, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True)
+    asset_id = Column(String, ForeignKey("character_assets.id", ondelete="CASCADE"), nullable=False, unique=True)
+    skeleton_type = Column(String, nullable=False, default="humanoid")  # humanoid, generic
+    bone_count = Column(Integer, default=0)
+    rig_status = Column(String, default="RIGGED")  # UNRIGGED, RIGGED, WEIGHTED, VALIDATED, FAILED
+    has_deformation_tested = Column(Boolean, default=False)
+    validation_results = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    character = relationship("Character", back_populates="rigs")
+    asset = relationship("CharacterAsset", back_populates="rig")
+
+
+class CharacterVariant(Base):
+    __tablename__ = "character_variants"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    character_id = Column(String, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True)
+    parent_version_id = Column(String, nullable=True)
+    variant_name = Column(String, nullable=False)
+    configuration = Column(JSON, nullable=True)
+    asset_id = Column(String, ForeignKey("character_assets.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    character = relationship("Character", back_populates="variants")
+
+
+class CharacterQualityReport(Base):
+    __tablename__ = "character_quality_reports"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    generation_id = Column(String, ForeignKey("character_generations.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    geometry_results = Column(JSON, nullable=True)
+    texture_results = Column(JSON, nullable=True)
+    rigging_results = Column(JSON, nullable=True)
+    export_results = Column(JSON, nullable=True)
+    overall_status = Column(String, default="PASS")  # PASS, WARNING, FAIL
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    generation = relationship("CharacterGeneration", back_populates="quality_report")
 
 class Project(Base):
     __tablename__ = "projects"

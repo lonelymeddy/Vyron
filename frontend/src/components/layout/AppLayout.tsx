@@ -22,7 +22,8 @@ import { apiClient, getToken, User } from "@/lib/api";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: Compass },
-  { name: "AI Video Creator", href: "/create", icon: Sparkles, highlight: true },
+  { name: "3D Character Studio", href: "/character-studio", icon: Users, highlight: true },
+  { name: "AI Video Creator", href: "/create", icon: Sparkles },
   { name: "Character Library", href: "/characters", icon: Users },
   { name: "My Projects", href: "/projects", icon: FolderKanban },
   { name: "Generation Center", href: "/generations", icon: ListOrdered },
