@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Clapperboard, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
-import { Button, Card, Input } from "@/components/ui";
+import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Button, Card, Input, Logo } from "@/components/ui";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -21,8 +21,8 @@ export default function ForgotPasswordPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link href="/" className="inline-block group">
-            <div className="w-12 h-12 rounded-2xl gradient-brand flex items-center justify-center glow-violet mx-auto mb-3 transition-transform group-hover:scale-105">
-              <Clapperboard className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-center mx-auto mb-3 transition-transform group-hover:scale-105">
+              <Logo size={56} priority />
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-white">Password Recovery</h2>
             <p className="text-slate-400 text-[10px] font-bold mt-1 uppercase tracking-widest">

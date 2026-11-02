@@ -5,6 +5,8 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { X, Play, Pause, Volume2, VolumeX, Maximize, AlertTriangle, CheckCircle2, Info, AlertCircle } from "lucide-react";
 
+export * from "./Logo";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

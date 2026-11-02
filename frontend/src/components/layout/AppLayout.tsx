@@ -4,7 +4,6 @@ import React, { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Clapperboard,
   Sparkles,
   Users,
   FolderKanban,
@@ -18,7 +17,7 @@ import {
   X,
   User as UserIcon
 } from "lucide-react";
-import { cn, Button } from "@/components/ui";
+import { cn, Button, Logo } from "@/components/ui";
 import { apiClient, getToken, User } from "@/lib/api";
 
 const navItems = [
@@ -109,8 +108,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-[#07090e] text-slate-100 flex items-center justify-center">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center glow-violet mx-auto animate-bounce">
-            <Clapperboard className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-center mx-auto animate-bounce">
+            <Logo size={44} priority />
           </div>
           <p className="text-xs text-slate-400 font-medium">Authenticating studio session...</p>
         </div>
@@ -124,8 +123,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex w-64 border-r border-slate-800/80 bg-[#0c1017] flex-col shrink-0 sticky top-0 h-screen z-20">
         <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center glow-violet transition-transform group-hover:scale-105">
-              <Clapperboard className="w-5 h-5 text-white" />
+            <div className="transition-transform group-hover:scale-105">
+              <Logo size={38} priority />
             </div>
             <div>
               <span className="font-extrabold text-lg tracking-wider text-white block leading-none">VYRON AI</span>
@@ -176,9 +175,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* MOBILE HEADER */}
       <header className="md:hidden border-b border-slate-800/80 bg-[#0c1017] px-4 py-3 flex items-center justify-between sticky top-0 z-30">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center glow-violet">
-            <Clapperboard className="w-4 h-4 text-white" />
-          </div>
+          <Logo size={32} priority />
           <div>
             <span className="font-bold text-base tracking-wider text-white block leading-none">VYRON AI</span>
             <span className="text-[8px] text-slate-400 font-semibold tracking-widest uppercase">CREATE BEYOND REALITY</span>
