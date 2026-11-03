@@ -21,3 +21,4 @@ python-dotenv>=1.0.1
 opencv-python-headless>=4.8.0
 scenedetect>=0.6.2
 mediapipe>=0.10.14
+trimesh>=4.0.0
