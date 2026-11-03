@@ -15,13 +15,11 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
-  Settings2,
-  AlertTriangle,
   FileEdit,
   Eye
 } from "lucide-react";
 import {
-  apiClient, Character, GenerationMode, ProviderCapabilityInfo, Storyboard, StoryboardScene, ReconstructionBlueprint
+  apiClient, Character, GenerationMode, ProviderCapabilityInfo, Storyboard, ReconstructionBlueprint
 } from "@/lib/api";
 
 function CreatorContent() {
@@ -155,7 +153,7 @@ function CreatorContent() {
 
   const handleGenerateStoryboardPreview = async () => {
     if (!videoFile && !referenceVideo) {
-      setToastMessage({ type: "error", text: "Upload a reference video before generating storyboard scenes." });
+      setToastMessage({ type: "error", text: "Upload a reference video before generating scene plan." });
       return;
     }
 
@@ -170,7 +168,6 @@ function CreatorContent() {
         setSelectedCharId(charId);
       }
 
-      // Create draft project
       const proj = await apiClient.projects.create({
         title: title || "Recreation Project",
         generation_mode: mode,
@@ -186,9 +183,9 @@ function CreatorContent() {
       const sb = await apiClient.generations.generateStoryboard(proj.id);
       setStoryboard(sb);
       setShowStoryboardModal(true);
-      setToastMessage({ type: "success", text: `Generated ${sb.total_scenes} cinematic storyboard scenes.` });
+      setToastMessage({ type: "success", text: `Prepared ${sb.total_scenes} cinematic scenes for your project.` });
     } catch (err: any) {
-      setToastMessage({ type: "error", text: err.message || "Failed to generate storyboard." });
+      setToastMessage({ type: "error", text: err.message || "Failed to generate scene plan." });
     } finally {
       setAnalyzingStoryboard(false);
     }
@@ -196,7 +193,7 @@ function CreatorContent() {
 
   const handleAnalyzeReferenceBlueprint = async () => {
     if (!videoFile && !referenceVideo) {
-      setToastMessage({ type: "error", text: "Upload a reference video before analyzing reconstruction blueprint." });
+      setToastMessage({ type: "error", text: "Upload a reference video before previewing scene shots." });
       return;
     }
 
@@ -211,7 +208,6 @@ function CreatorContent() {
         setSelectedCharId(charId);
       }
 
-      // Create draft project
       const proj = await apiClient.projects.create({
         title: title || "Character Replacement Project",
         generation_mode: mode,
@@ -227,9 +223,9 @@ function CreatorContent() {
       const bp = await apiClient.generations.getBlueprint(proj.id);
       setBlueprint(bp);
       setShowBlueprintModal(true);
-      setToastMessage({ type: "success", text: `Analyzed reference video: ${bp.total_shots} shots identified.` });
+      setToastMessage({ type: "success", text: `Analysed video: ${bp.total_shots} scenes ready for replacement.` });
     } catch (err: any) {
-      setToastMessage({ type: "error", text: err.message || "Failed to analyze reference video blueprint." });
+      setToastMessage({ type: "error", text: err.message || "Failed to analyse reference video." });
     } finally {
       setAnalyzingBlueprint(false);
     }
@@ -282,7 +278,6 @@ function CreatorContent() {
         await apiClient.projects.uploadSourceVideo(project.id, videoFile);
       }
 
-      // If user had an edited storyboard, sync it
       if (mode === "FULL_CGI_RECREATION") {
         await apiClient.generations.generateStoryboard(project.id);
       }
@@ -301,15 +296,15 @@ function CreatorContent() {
       {/* HEADER */}
       <div>
         <div className="flex items-center gap-2">
-          <Badge variant="purple">STUDIO CREATOR</Badge>
-          <Badge variant="cyan">3 PRODUCTION WORKFLOWS</Badge>
+          <Badge variant="purple">CINEMATIC CREATOR</Badge>
+          <Badge variant="cyan">3 CREATION MODES</Badge>
         </div>
         <h1 className="text-2xl font-extrabold text-white mt-2 flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-violet-400" />
-          AI Cinematic Video Engine
+          Create New Project
         </h1>
         <p className="text-slate-400 text-xs md:text-sm mt-1 leading-relaxed">
-          Select your generation workflow, upload character references, configure cinematic camera & environment parameters, and generate cinematic CGI productions.
+          Select your creation mode, upload character and video references, configure camera and lighting, and generate cinematic 3D CGI productions.
         </p>
       </div>
 
@@ -324,17 +319,17 @@ function CreatorContent() {
       {/* PROJECT TITLE */}
       <Card className="p-4">
         <Input
-          label="Cinematic Project Title"
+          label="Project Name"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. Erangel Tactical Cyber Extraction"
+          placeholder="e.g. Erangel Tactical Extraction"
         />
       </Card>
 
       {/* CREATION MODES SELECTION */}
       <div className="space-y-3">
         <label className="text-xs font-bold text-slate-200 uppercase tracking-wider block">
-          1. Select Production Workflow
+          1. Select Creation Mode
         </label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card
@@ -352,9 +347,9 @@ function CreatorContent() {
               {mode === "CHARACTER_REPLACEMENT" && <CheckCircle2 className="w-5 h-5 text-violet-400" />}
             </div>
             <div>
-              <h3 className="font-bold text-slate-100 text-sm">Mode 1: Character Replacement</h3>
+              <h3 className="font-bold text-slate-100 text-sm">Character Replacement</h3>
               <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                Replace video character with your custom avatar while preserving original motion, actions, and scene timing.
+                Replace video characters with your custom avatar while preserving original motion, action, and lighting.
               </p>
             </div>
           </Card>
@@ -374,9 +369,9 @@ function CreatorContent() {
               {mode === "FULL_CGI_RECREATION" && <CheckCircle2 className="w-5 h-5 text-indigo-400" />}
             </div>
             <div>
-              <h3 className="font-bold text-slate-100 text-sm">Mode 2: Full CGI Recreation</h3>
+              <h3 className="font-bold text-slate-100 text-sm">Full CGI Recreation</h3>
               <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                Analyze reference video and recreate whole multi-shot scenes with custom environment, vehicles, and storyboard.
+                Recreate entire video scenes with custom 3D virtual environments, vehicles, and multi-shot pacing.
               </p>
             </div>
           </Card>
@@ -396,9 +391,9 @@ function CreatorContent() {
               {mode === "ORIGINAL_CGI_CREATION" && <CheckCircle2 className="w-5 h-5 text-cyan-400" />}
             </div>
             <div>
-              <h3 className="font-bold text-slate-100 text-sm">Mode 3: Original CGI Creation</h3>
+              <h3 className="font-bold text-slate-100 text-sm">Original CGI Creation</h3>
               <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                Generate original cinematic scenes directly from prompts & character reference without needing a reference video.
+                Generate brand-new cinematic scenes directly from prompts & character reference photos.
               </p>
             </div>
           </Card>
@@ -412,7 +407,7 @@ function CreatorContent() {
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
               <UserIcon className="w-4 h-4 text-violet-400" />
-              2. Character Reference Input *
+              2. Character Reference *
             </label>
             {characterImage && (
               <button
@@ -423,18 +418,18 @@ function CreatorContent() {
                 }}
                 className="text-[11px] text-rose-400 hover:underline"
               >
-                Clear Input
+                Clear
               </button>
             )}
           </div>
 
           {savedCharacters.length > 0 && (
             <Select
-              label="Choose from Character Library"
+              label="Select from Library"
               value={selectedCharId}
               onChange={(e) => handleSelectSavedCharacter(e.target.value)}
             >
-              <option value="">-- Upload New Character Photo Below --</option>
+              <option value="">-- Upload New Character Photo --</option>
               {savedCharacters.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -451,16 +446,16 @@ function CreatorContent() {
             <label className="border-2 border-dashed border-slate-800 hover:border-violet-500/50 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors h-52 bg-slate-900/40">
               <Upload className="w-8 h-8 text-slate-500 mb-2" />
               <span className="text-xs font-semibold text-slate-300">Click to upload character image</span>
-              <span className="text-[10px] text-slate-500 mt-1">PNG, JPG, WEBP (Face, hair, and attire identity)</span>
+              <span className="text-[10px] text-slate-500 mt-1">PNG, JPG, WEBP</span>
               <input type="file" accept="image/*" onChange={handleCharacterUpload} className="hidden" />
             </label>
           )}
 
           <Input
-            label="Character Identifier / Name"
+            label="Character Name"
             value={characterName}
             onChange={(e) => setCharacterName(e.target.value)}
-            placeholder="e.g. Ghost Operative"
+            placeholder="e.g. Tactical Operative"
           />
         </Card>
 
@@ -469,7 +464,7 @@ function CreatorContent() {
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
               <Video className="w-4 h-4 text-indigo-400" />
-              3. Reference Video Input {mode !== "ORIGINAL_CGI_CREATION" && "*"}
+              3. Reference Video {mode !== "ORIGINAL_CGI_CREATION" && "*"}
             </label>
             {referenceVideo && (
               <button
@@ -494,7 +489,7 @@ function CreatorContent() {
               <span className="text-xs font-semibold text-slate-300">
                 {mode === "ORIGINAL_CGI_CREATION" ? "Not required for Mode 3" : "Click to upload reference video"}
               </span>
-              <span className="text-[10px] text-slate-500 mt-1">MP4, MOV, WEBM (Cinematic action reference)</span>
+              <span className="text-[10px] text-slate-500 mt-1">MP4, MOV, WEBM</span>
               <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" disabled={mode === "ORIGINAL_CGI_CREATION"} />
             </label>
           )}
@@ -516,7 +511,7 @@ function CreatorContent() {
               className="w-full text-xs"
             >
               <Eye className="w-4 h-4 mr-1.5 text-cyan-400" />
-              Analyze Video & Preview Reconstruction Blueprint
+              Preview Video Analysis
             </Button>
           )}
 
@@ -530,7 +525,7 @@ function CreatorContent() {
               className="w-full text-xs"
             >
               <FileEdit className="w-4 h-4 mr-1.5 text-violet-400" />
-              Generate & Edit Multi-Shot Storyboard
+              Preview Scene Plan
             </Button>
           )}
         </Card>
@@ -543,14 +538,14 @@ function CreatorContent() {
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-cyan-400" />
               <h3 className="font-bold text-slate-100 text-sm">
-                Forensic Reconstruction Blueprint ({blueprint.total_shots} Shots, {blueprint.reference_metadata.fps} FPS)
+                Video Analysis ({blueprint.total_shots} Shots Identified)
               </h3>
             </div>
             <button
               onClick={() => setShowBlueprintModal(false)}
               className="text-xs text-slate-400 hover:text-white"
             >
-              Close Blueprint
+              Close
             </button>
           </div>
 
@@ -564,12 +559,6 @@ function CreatorContent() {
                 <div className="text-[11px] text-slate-300">
                   <p><strong>Action:</strong> {shot.action_description}</p>
                   <p><strong>Camera:</strong> {shot.camera_type}</p>
-                  <p><strong>Approach:</strong> <span className="text-cyan-400">{shot.reconstruction_approach.replace('APPROACH_', '')}</span></p>
-                  {shot.has_character && (
-                    <Badge variant="purple" className="mt-1">
-                      33-Landmark Pose Active
-                    </Badge>
-                  )}
                 </div>
               </div>
             ))}
@@ -577,19 +566,19 @@ function CreatorContent() {
         </Card>
       )}
 
-      {/* STORYBOARD PREVIEW MODAL / DRAWER */}
+      {/* STORYBOARD PREVIEW MODAL */}
       {showStoryboardModal && storyboard && (
         <Card className="border border-violet-500/30 bg-violet-950/10 p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Film className="w-5 h-5 text-violet-400" />
-              <h3 className="font-bold text-slate-100 text-sm">Storyboard Plan ({storyboard.total_scenes} Scenes)</h3>
+              <h3 className="font-bold text-slate-100 text-sm">Scene Plan ({storyboard.total_scenes} Scenes)</h3>
             </div>
             <button
               onClick={() => setShowStoryboardModal(false)}
               className="text-xs text-slate-400 hover:text-white"
             >
-              Close Storyboard
+              Close
             </button>
           </div>
 
@@ -612,41 +601,41 @@ function CreatorContent() {
         </Card>
       )}
 
-      {/* CREATIVE PROMPT INSTRUCTIONS */}
+      {/* CREATIVE PROMPT */}
       <Card className="space-y-3">
         <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
           <Wand2 className="w-4 h-4 text-cyan-400" />
-          4. Creative Prompt & Scene Customization Instructions
+          4. Creative Prompt & Scene Description
         </label>
         <Textarea
           rows={3}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe your scene: e.g. A character walks through a deserted PUBG-inspired military compound at sunset, approaches a black sports car, enters the vehicle with cinematic camera orbit..."
+          placeholder="Describe your scene: e.g. A character walks through an Erangel military compound at sunset, approaches a black vehicle with a cinematic camera orbit..."
         />
       </Card>
 
-      {/* PRODUCTION & CGI CONTROLS */}
+      {/* PRODUCTION CONTROLS */}
       <Card className="space-y-6">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-violet-400" />
-            <h3 className="text-sm font-bold text-slate-100">Production & CGI Render Parameters</h3>
+            <h3 className="text-sm font-bold text-slate-100">Production Settings</h3>
           </div>
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="text-xs text-violet-400 hover:underline flex items-center font-medium"
           >
-            {showAdvanced ? "Hide Advanced Settings" : "Show Advanced Settings"}
+            {showAdvanced ? "Hide Options" : "More Options"}
             {showAdvanced ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Select label="Environment / Location" value={environment} onChange={(e) => setEnvironment(e.target.value)}>
-            <option value="erangel_pubg">Erangel Military Outpost (PUBG)</option>
+            <option value="erangel_pubg">Erangel Military Outpost</option>
             <option value="miramar_desert">Miramar Desert Ruins</option>
-            <option value="vikendi_snow">Vikendi Snowy Compound</option>
+            <option value="vikendi_snow">Vikendi Snow Base</option>
             <option value="cyberpunk_city">Cyberpunk Neon City</option>
             <option value="futuristic_hangar">Futuristic Sci-Fi Hangar</option>
           </Select>
@@ -677,89 +666,28 @@ function CreatorContent() {
             <option value="4K">4K Ultra HD</option>
           </Select>
 
-          <Select label="AI Provider Engine" value={aiProvider} onChange={(e) => handleProviderChange(e.target.value)}>
-            {availableProviders.length > 0 ? (
-              <>
-                {availableProviders.some((p) => p.provider_type === "internal" || p.name === "vyron_reconstruction_engine") && (
-                  <optgroup label="Internal Reconstruction Engine">
-                    {availableProviders
-                      .filter((p) => p.provider_type === "internal" || p.name === "vyron_reconstruction_engine")
-                      .map((p) => (
-                        <option key={p.name} value={p.name}>
-                          {p.display_name} {p.is_configured ? "(Active / Ready)" : "(Missing Dependencies)"}
-                        </option>
-                      ))}
-                  </optgroup>
-                )}
-                {availableProviders.some((p) => p.provider_type === "external" || (p.name !== "vyron_reconstruction_engine" && p.provider_type !== "internal")) && (
-                  <optgroup label="External AI Providers (Optional)">
-                    {availableProviders
-                      .filter((p) => p.provider_type === "external" || (p.name !== "vyron_reconstruction_engine" && p.provider_type !== "internal"))
-                      .map((p) => (
-                        <option key={p.name} value={p.name} disabled={!p.is_configured}>
-                          {p.display_name} {p.is_configured ? "(Configured)" : "(Unconfigured - Requires API Key)"}
-                        </option>
-                      ))}
-                  </optgroup>
-                )}
-              </>
-            ) : (
-              <option value="vyron_reconstruction_engine">VYRON Reference-Driven Cinematic Engine (Active)</option>
-            )}
+          <Select label="Generation Engine" value={aiProvider} onChange={(e) => handleProviderChange(e.target.value)}>
+            <option value="vyron_reconstruction_engine">VYRON Native 3D Engine (Active)</option>
+            {availableProviders
+              .filter((p) => p.name !== "vyron_reconstruction_engine")
+              .map((p) => (
+                <option key={p.name} value={p.name} disabled={!p.is_configured}>
+                  {p.display_name} {p.is_configured ? "(Ready)" : "(API Key Required)"}
+                </option>
+              ))}
           </Select>
         </div>
-
-        {/* PROVIDER CAPABILITY & DISCLAIMER BADGE */}
-        {selectedProviderInfo && (
-          <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3 text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-300">
-                Engine: {selectedProviderInfo.display_name}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Badge variant={selectedProviderInfo.provider_type === "internal" ? "cyan" : "purple"}>
-                  {selectedProviderInfo.provider_type === "internal" ? "Internal Engine" : "External Provider"}
-                </Badge>
-                <Badge variant={selectedProviderInfo.is_configured ? "success" : "warning"}>
-                  {selectedProviderInfo.is_configured
-                    ? "Ready"
-                    : selectedProviderInfo.provider_type === "internal"
-                    ? "Dependencies Missing"
-                    : "API Key Required"}
-                </Badge>
-              </div>
-            </div>
-            <p className="text-[11px] text-slate-400">
-              {selectedProviderInfo.disclaimer}
-            </p>
-            {selectedProviderInfo.dependencies && (
-              <div className="pt-2 border-t border-slate-800/80 flex flex-wrap gap-2 text-[10px]">
-                <span className="text-slate-400 font-medium">Local Engine Components:</span>
-                {Object.entries(selectedProviderInfo.dependencies).map(([dep, avail]) => (
-                  <span
-                    key={dep}
-                    className={`px-1.5 py-0.5 rounded font-mono ${
-                      avail ? "bg-emerald-950/40 text-emerald-400 border border-emerald-800/50" : "bg-rose-950/40 text-rose-400 border border-rose-800/50"
-                    }`}
-                  >
-                    {dep.toUpperCase()}: {avail ? "AVAILABLE" : "UNAVAILABLE"}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {showAdvanced && (
           <div className="pt-4 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Select label="Outfit Customization" value={outfit} onChange={(e) => setOutfit(e.target.value)}>
-              <option value="tactical_black">Level 3 Tactical Black Suit</option>
-              <option value="desert_ghillie">Ghillie Sniper Camo</option>
+              <option value="tactical_black">Tactical Combat Suit</option>
+              <option value="desert_ghillie">Desert Ghillie Camo</option>
               <option value="cyber_exosuit">Cybernetic Exosuit</option>
             </Select>
 
             <Select label="Vehicle Props" value={vehicle} onChange={(e) => setVehicle(e.target.value)}>
-              <option value="dacia_sedan">Armored Buggy / Dacia</option>
+              <option value="dacia_sedan">Armored Buggy</option>
               <option value="sports_car_gt">Sports Car GT</option>
               <option value="hover_bike">Futuristic Hoverbike</option>
               <option value="none">No Vehicle</option>
@@ -767,7 +695,7 @@ function CreatorContent() {
 
             <Select label="Weather Effects" value={weather} onChange={(e) => setWeather(e.target.value)}>
               <option value="clear">Clear Skies</option>
-              <option value="heavy_rain">Heavy Rain & Wet Shaders</option>
+              <option value="heavy_rain">Rain & Storm</option>
               <option value="foggy">Dense Mist</option>
             </Select>
           </div>
@@ -776,7 +704,7 @@ function CreatorContent() {
         {/* SUBMIT BUTTON */}
         <div className="pt-4 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-xs text-slate-400">
-            Render Cost: <span className="font-bold text-amber-400">10 CR</span> &bull; Estimated Render Time: ~5s
+            Project Cost: <span className="font-bold text-amber-400">10 CR</span>
           </div>
 
           <Button
@@ -786,7 +714,7 @@ function CreatorContent() {
             className="w-full md:w-auto px-8 shadow-xl"
           >
             <Sparkles className="w-5 h-5 mr-2" />
-            Generate Cinematic Video (10 CR)
+            Generate Video (10 CR)
           </Button>
         </div>
       </Card>
@@ -797,7 +725,7 @@ function CreatorContent() {
 export default function CreateVideoPage() {
   return (
     <AppLayout>
-      <Suspense fallback={<div className="p-6 text-slate-400">Loading Creator Studio...</div>}>
+      <Suspense fallback={<div className="p-6 text-slate-400">Loading Creator...</div>}>
         <CreatorContent />
       </Suspense>
     </AppLayout>
