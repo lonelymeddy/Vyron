@@ -22,14 +22,24 @@ def is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(("127.0.0.1", port)) == 0
 
-def wait_for_port(port: int, host: str = "127.0.0.1", timeout: float = 15.0) -> bool:
+import urllib.request
+import urllib.error
+
+def wait_for_health(port: int, host: str = "127.0.0.1", timeout: float = 30.0, proc: subprocess.Popen = None) -> bool:
+    """Poll backend health endpoint until it returns HTTP 200 or timeout/process exit."""
     start_time = time.time()
+    url = f"http://{host}:{port}/health"
     while time.time() - start_time < timeout:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.5)
-            if s.connect_ex((host, port)) == 0:
-                return True
-        time.sleep(0.2)
+        if proc and proc.poll() is not None:
+            return False
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "VYRON-HealthCheck"})
+            with urllib.request.urlopen(req, timeout=1.0) as resp:
+                if resp.status == 200:
+                    return True
+        except (urllib.error.URLError, socket.error, TimeoutError):
+            pass
+        time.sleep(0.3)
     return False
 
 def main():
@@ -39,7 +49,8 @@ def main():
     # Public port for the web service (Render, Railway, Heroku pass $PORT)
     public_port = int(os.environ.get("PORT", "3000"))
 
-    # Internal port for FastAPI backend
+    # Backend bind host and internal port for FastAPI backend
+    backend_host = os.environ.get("BACKEND_HOST", "0.0.0.0")
     backend_port = int(os.environ.get("BACKEND_PORT", "8000"))
     if backend_port == public_port:
         backend_port = 8001
@@ -48,37 +59,46 @@ def main():
     print(f"==================================================")
     print(f" VYRON AI — CREATE BEYOND REALITY")
     print(f" Unified Frontend & Backend Orchestrator")
-    print(f" Public Port  : {public_port} (Next.js with API Proxy)")
-    print(f" Backend Port : {backend_port} (FastAPI Engine)")
+    print(f" Public Port  : {public_port} (Next.js on 0.0.0.0 with API Proxy)")
+    print(f" Backend Host : {backend_host}:{backend_port} (FastAPI Engine)")
     print(f"==================================================")
 
     # 1. Initialize database schema
     print("[VYRON] Initializing database schema...")
     env_backend = os.environ.copy()
     env_backend["PYTHONPATH"] = os.path.join(repo_root, "backend")
+    env_backend["PYTHONUNBUFFERED"] = "1"
     init_db_path = os.path.join(repo_root, "backend", "app", "db", "init_db.py")
     try:
         subprocess.run([sys.executable, init_db_path], env=env_backend, check=True)
     except Exception as err:
-        print(f"[VYRON] Warning during DB initialization: {err}")
+        print(f"[VYRON] Database initialization error: {err}")
 
     # 2. Launch FastAPI backend
     backend_cmd = [
         sys.executable,
+        "-u",
         "-m",
         "uvicorn",
         "app.main:app",
         "--host",
-        "127.0.0.1",
+        backend_host,
         "--port",
         str(backend_port),
     ]
-    print(f"[VYRON] Launching FastAPI backend on 127.0.0.1:{backend_port}...")
+    print(f"[VYRON] Launching FastAPI backend on {backend_host}:{backend_port}...")
     backend_proc = subprocess.Popen(backend_cmd, env=env_backend)
 
-    # Wait for backend to be ready
-    if not wait_for_port(backend_port, timeout=10.0):
-        print(f"[VYRON] Warning: Backend did not report ready on port {backend_port} within timeout.")
+    # Wait for backend health check to succeed
+    print(f"[VYRON] Waiting for backend health check on 127.0.0.1:{backend_port}/health...")
+    if not wait_for_health(backend_port, host="127.0.0.1", timeout=20.0, proc=backend_proc):
+        if backend_proc.poll() is not None:
+            print(f"[VYRON] Critical Error: Backend process exited prematurely with code {backend_proc.returncode} before becoming healthy.")
+            sys.exit(backend_proc.returncode or 1)
+        else:
+            print(f"[VYRON] Warning: Backend did not report healthy on port {backend_port} within timeout, but process is still running.")
+    else:
+        print(f"[VYRON] Backend is healthy and operational on {backend_host}:{backend_port}!")
 
     # 3. Launch Next.js frontend
     env_frontend = os.environ.copy()
