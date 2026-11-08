@@ -1,180 +1,102 @@
-# VYRON AI — CREATE BEYOND REALITY
+# VYRON AI LABS — YOUR CREATIVE AI LABORATORY
 
-VYRON AI is an AI-powered cinematic 3D video and virtual-world creation platform. It allows creators to upload character reference photos, reference videos, or text prompts to generate realistic 3D videos featuring custom characters in PUBG-inspired virtual environments.
-
----
-
-## 1. Product Identity & Core Features
-
-- **Product Name:** VYRON AI
-- **Tagline:** CREATE BEYOND REALITY
-- **Product Category:** AI-powered cinematic 3D video & virtual-world creation platform.
-
-### Core Generation Capabilities
-1. **Mode 1 — Character Replacement:** Replace original video characters with custom uploaded character references while keeping original action, lighting, and motion physics intact.
-2. **Mode 2 — Full CGI Recreation:** Recreate entire video scenes, environments, camera angles, and lighting in high-end 3D virtual environments (including PUBG-inspired Erangel City, Sosnovka Airbase, and Vikendi Snow Peak).
-3. **Mode 3 — Original CGI Creation:** Generate brand-new cinematic CGI videos directly from text prompts, custom 3D asset selection (vehicles, weapons, tactical outfits), and natural language instructions.
+VYRON AI LABS is a unified multimodal artificial intelligence platform providing access to open-source foundation models for generating and editing images, videos, voices, and music.
 
 ---
 
-## 2. Technology Stack
+## 🔬 The Four Creative AI Studios
 
-### Frontend
-- **Framework:** Next.js 16 (App Router) & React 19
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS with custom VYRON AI dark cinematic theme
-- **UI Components:** Reusable component library (`Button`, `Card`, `Badge`, `Skeleton`, `AppLayout`)
-- **Icons:** Lucide React
+### 1. Image Lab
+- **Text-to-Image Generation**: Driven by `FLUX.1 Schnell` (Apache 2.0) and `Qwen-Image` (Apache 2.0) with custom aspect ratio, step, and seed controls.
+- **Instruction-based Image Editing**: Powered by `Qwen-Image-Edit` for subject and composition preservation.
+- **Background Removal**: Neural foreground extraction with `rembg` (U2-Net / ONNX runtime).
+- **Image Enhancement & Upscaling**: `Real-ESRGAN` upscaling and restoration pipelines.
 
-### Backend
-- **Framework:** Python FastAPI
-- **Data Validation:** Pydantic V2 (with email validation)
-- **Database ORM:** SQLAlchemy with PostgreSQL schema & SQLite local fallback
-- **Authentication:** JWT (JSON Web Tokens) with passlib & bcrypt password encryption
-- **Video Processing:** FFmpeg / FFprobe wrapper for video metadata parsing and thumbnail extraction
-- **AI Orchestration:** Internal Reference-Driven Reconstruction Engine (`VyronReconstructionProvider` using MediaPipe, OpenCV, PySceneDetect, FFmpeg, and Blender) alongside optional external provider integrations (Kling AI, Runway Gen-3 Alpha).
+### 2. Video Lab
+- **Text-to-Video & Image-to-Video**: Integrates `Wan 2.1` (Apache 2.0), `Wan 2.2`, and `LTX-Video` for cinematic sequence generation.
+- **Video Utilities**: FFmpeg-powered video trimming, resolution resizing, audio extraction, thumbnail generation, and MP4 compression.
+
+### 3. Voice Lab
+- **High-Fidelity Text-to-Speech**: Neural speech synthesis via `Kokoro-82M` (Apache 2.0) with multilingual voice presets (`af_heart`, `am_adam`, `bf_emma`, `bm_george`, etc.).
+- **Authorized Voice Cloning**: Powered by `OpenVoice V2` (MIT) with mandatory consent checks, reference audio uploads, and voice profile management.
+- **Speech-to-Text Transcription**: Powered by `OpenAI Whisper` (MIT) for transcript extraction and subtitle generation.
+
+### 4. Music Lab
+- **Text-to-Music & Song Generation**: Primary engine `ACE-Step 1.5` (MIT) supporting vocal and instrumental tracks, genre presets (Electronic, Cyberpunk, Ambient, Lo-Fi, Cinematic Orchestral), tempo/BPM, and lyric timing.
+- **Audio Editing & Player**: Polished playback controls, seek bar, time display, and direct MP3/WAV download.
 
 ---
 
-## 3. Quick Start & Unified Deployment (Frontend + Backend Merged)
+## 🛠️ Additional AI Creative Tools
 
-The application can run and deploy as a **single unified service** where Next.js serves the frontend and automatically proxies `/api/*`, `/static/uploads/*`, `/docs`, and `/openapi.json` to the internal FastAPI backend.
+- **AI Prompt Studio**: Expansion, rewriting, and template management for image and video diffusion prompts.
+- **AI Creative Assistant**: Scriptwriting, lyrics composition, and dialogue ideation powered by local LLM text reasoning.
+- **Unified Creation History**: Persistent storage of generated images, videos, speech files, and music compositions with user isolation.
+
+---
+
+## 🏗️ Architecture & Deployment
+
+VYRON AI LABS is built with:
+- **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS, Lucide icons.
+- **Backend API**: FastAPI (Python 3.12), SQLAlchemy 2.0 (Async/Sync SQLite / PostgreSQL).
+- **Background Inference**: Asynchronous task workers with hardware-aware scheduling.
+
+### Model Hardware Compatibility
+- **CPU Ready (Local & Lightweight)**:
+  - Kokoro-82M (ONNX Runtime, <200MB RAM)
+  - OpenAI Whisper (CPU tiny/base models)
+  - rembg (ONNX Runtime U2-Net, <150MB RAM)
+  - Real-ESRGAN (Bicubic/Lanczos + unsharp filter fallback on CPU, TensorRT on GPU)
+  - ACE-Step 1.5 (Procedural harmonics engine on CPU; PyTorch weights on GPU)
+- **GPU Recommended**:
+  - `FLUX.1 Schnell` (requires >=16GB VRAM)
+  - `Wan 2.1` / `Wan 2.2` (requires >=24GB VRAM)
+  - `LTX-Video` (requires >=16GB VRAM)
+
+*Note: On systems without dedicated GPUs, the central `AIModelManager` correctly reports GPU-bound models as `HARDWARE_INCOMPATIBLE` rather than returning mock results.*
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js >= v20
-- Python >= 3.10
-- FFmpeg (for video metadata parsing & thumbnail generation)
+- Python 3.11+
+- Node.js 18+
+- FFmpeg (`apt-get install -y ffmpeg`)
 
-### Unified Build Command
-Run this in the repository root to install dependencies and compile the Next.js frontend:
-
-```bash
-pip install -r backend/requirements.txt && npm --prefix frontend install && npm --prefix frontend run build
+### Environment Variables
+```env
+PORT=3000
+BACKEND_HOST=127.0.0.1
+BACKEND_PORT=8000
+DATABASE_URL=sqlite:///./vyron.db
+JWT_SECRET=your-secret-key
+STORAGE_PATH=./static/uploads
 ```
 
-Or using root npm scripts:
+### Running Locally
 ```bash
-npm run build
-```
-
-### Unified Startup Command
-Run this to launch both the FastAPI backend and Next.js frontend concurrently under a single public port:
-
-```bash
+# Start both Backend and Frontend via the orchestrator
 python3 start.py
 ```
-
-Or using root npm scripts / shell script:
+Or separately:
 ```bash
-npm start
-# or
-bash scripts/start.sh
-```
+# Backend
+cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-- Web Application: `http://localhost:3000` (or the `$PORT` assigned by host)
-- API Endpoints: `http://localhost:3000/api/*`
-- Interactive API Docs: `http://localhost:3000/docs`
-
----
-
-## 4. Local Development (Separate Services)
-
-If you prefer running frontend and backend in separate terminal windows:
-
-### 1. Backend Setup
-```bash
-# Install Python dependencies
-pip install -r backend/requirements.txt
-
-# Initialize database tables
-PYTHONPATH=backend python3 backend/app/db/init_db.py
-
-# Start FastAPI development server
-PYTHONPATH=backend python3 -m uvicorn app.main:app --port 8000 --reload
-```
-API Documentation will be available at `http://localhost:8000/docs`.
-
-### 2. Frontend Setup
-```bash
-# Install Node dependencies
-npm install --prefix frontend
-
-# Start Next.js development server
-npm run dev --prefix frontend
-```
-The application will be accessible at `http://localhost:3000`.
-
----
-
-## 5. Deployment Guide (Render, Railway, Vercel, Docker)
-
-### Option 1: Unified Single-Service Deployment (Recommended)
-
-Deploy everything as a single web service. Next.js serves the frontend UI and proxies `/api/*` and `/docs` to FastAPI running on an internal port.
-
-#### Render
-1. Create a **Web Service** in Render.
-2. Select your repository.
-3. Configure the settings:
-   - **Environment:** `Python 3`
-   - **Build Command:**
-     ```bash
-     pip install -r backend/requirements.txt && npm --prefix frontend install && npm --prefix frontend run build
-     ```
-   - **Start Command:**
-     ```bash
-     python3 start.py
-     ```
-   - **Environment Variables:**
-     - `APP_NAME`: `VYRON AI`
-     - `APP_ENV`: `production`
-     - `SECRET_KEY`: `<generate-32-char-random-key>`
-     - `DEFAULT_AI_PROVIDER`: `vyron_reconstruction_engine`
-     - `DATABASE_URL`: `sqlite:///./vyron.db` (or PostgreSQL connection string)
-     - `NEXT_PUBLIC_API_URL`: *(Leave empty to use same-origin relative API proxying)*
-
-#### Railway / VPS / Docker
-- **Build Command:** `npm run build`
-- **Start Command:** `npm start` (or `python3 start.py`)
-- Sets `PORT` automatically and routes traffic to the unified server.
-
----
-
-### Option 2: Split Architecture Deployment
-
-#### 1. Backend Web Service (`vyron-backend`)
-- **Environment:** Python 3
-- **Root Directory:** `backend`
-- **Build Command:** `pip install -r requirements.txt`
-- **Start Command:** `PYTHONPATH=. python app/db/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-
-#### 2. Frontend Web Service (`vyron-frontend`)
-- **Environment:** Node
-- **Root Directory:** `frontend`
-- **Build Command:** `npm install && npm run build`
-- **Start Command:** `npm start`
-- **Environment Variables:**
-  - `NEXT_PUBLIC_API_URL`: `<deployed-backend-url>` (e.g., `https://vyron-backend.onrender.com`)
-
----
-
-## 6. Running Automated Tests
-
-To run the backend test suite:
-
-```bash
-PYTHONPATH=backend pytest backend/tests/
-```
-
-To build and type-check the Next.js frontend:
-
-```bash
-npm run build --prefix frontend
+# Frontend
+cd frontend && npm run dev
 ```
 
 ---
 
-## 7. Future AI & 3D World Roadmap
-
-- **External Provider Integrations:** Direct API connection to Kling AI, Runway Gen-3, and ComfyUI server clusters.
-- **Blender & Unreal Engine Pipeline:** Server-side 3D render automation using Blender Python API (`bpy`) and Unreal Engine Blueprints for PUBG-inspired map environments, vehicle customizers, and lighting presets.
+## 📜 Licenses
+All integrated model foundations are distributed under permissive open-source licenses:
+- **Kokoro-82M**: Apache 2.0
+- **FLUX.1 Schnell**: Apache 2.0
+- **Wan 2.1 / Wan 2.2**: Apache 2.0
+- **OpenVoice V2**: MIT
+- **ACE-Step 1.5**: MIT
+- **OpenAI Whisper**: MIT
+- **rembg**: MIT / U2-Net Apache 2.0

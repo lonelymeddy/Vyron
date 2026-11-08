@@ -44,6 +44,9 @@ class User(Base):
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
     credits = relationship("Credit", back_populates="user", uselist=False, cascade="all, delete-orphan")
     credit_transactions = relationship("CreditTransaction", back_populates="user", cascade="all, delete-orphan")
+    creations = relationship("CreationItem", back_populates="user", cascade="all, delete-orphan")
+    voice_profiles = relationship("VoiceProfile", back_populates="user", cascade="all, delete-orphan")
+    saved_prompts = relationship("PromptTemplate", back_populates="user", cascade="all, delete-orphan")
 
 class Character(Base):
     __tablename__ = "characters"
@@ -81,9 +84,9 @@ class CharacterReferenceImage(Base):
     original_file_path = Column(String, nullable=False)
     processed_file_path = Column(String, nullable=True)
     mask_file_path = Column(String, nullable=True)
-    view_type = Column(String, nullable=False, default="unknown")  # front, back, left, right, three_quarter, face_closeup, full_body, unknown
+    view_type = Column(String, nullable=False, default="unknown")
     confidence = Column(Float, default=0.0)
-    dimensions = Column(String, nullable=True)  # e.g. "1024x1024"
+    dimensions = Column(String, nullable=True)
     quality_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -96,10 +99,10 @@ class CharacterGeneration(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     character_id = Column(String, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True)
     generation_version = Column(Integer, default=1)
-    generation_mode = Column(String, nullable=False, default="SINGLE_IMAGE")  # SINGLE_IMAGE, MULTI_IMAGE, ADVANCED
-    status = Column(String, nullable=False, default="QUEUED")  # QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED
-    current_pipeline = Column(Integer, default=1)  # 1 to 4
-    current_stage = Column(Integer, default=1)     # 1 to 20
+    generation_mode = Column(String, nullable=False, default="SINGLE_IMAGE")
+    status = Column(String, nullable=False, default="QUEUED")
+    current_pipeline = Column(Integer, default=1)
+    current_stage = Column(Integer, default=1)
     stage_name = Column(String, default="Image Ingestion")
     progress_percentage = Column(Integer, default=0)
     configuration = Column(JSON, nullable=True)
@@ -118,10 +121,10 @@ class PipelineExecution(Base):
 
     id = Column(String, primary_key=True, default=generate_uuid)
     generation_id = Column(String, ForeignKey("character_generations.id", ondelete="CASCADE"), nullable=False, index=True)
-    pipeline_number = Column(Integer, nullable=False)  # 1, 2, 3, 4
-    stage_number = Column(Integer, nullable=False)     # 1 to 20
+    pipeline_number = Column(Integer, nullable=False)
+    stage_number = Column(Integer, nullable=False)
     stage_name = Column(String, nullable=False)
-    status = Column(String, nullable=False, default="QUEUED")  # QUEUED, PROCESSING, COMPLETED, FAILED, SKIPPED
+    status = Column(String, nullable=False, default="QUEUED")
     input_metadata = Column(JSON, nullable=True)
     output_metadata = Column(JSON, nullable=True)
     started_at = Column(DateTime, nullable=True)
@@ -137,9 +140,9 @@ class CharacterAsset(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     character_id = Column(String, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True)
     generation_id = Column(String, ForeignKey("character_generations.id", ondelete="CASCADE"), nullable=True, index=True)
-    asset_type = Column(String, nullable=False)  # initial_mesh, refined_mesh, textured_mesh, rigged_model, glb_export, fbx_export, obj_export, thumbnail
+    asset_type = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
-    file_format = Column(String, nullable=False)  # glb, fbx, obj, ply, png
+    file_format = Column(String, nullable=False)
     file_size = Column(Integer, nullable=True)
     metadata_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -155,9 +158,9 @@ class CharacterRig(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     character_id = Column(String, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True)
     asset_id = Column(String, ForeignKey("character_assets.id", ondelete="CASCADE"), nullable=False, unique=True)
-    skeleton_type = Column(String, nullable=False, default="humanoid")  # humanoid, generic
+    skeleton_type = Column(String, nullable=False, default="humanoid")
     bone_count = Column(Integer, default=0)
-    rig_status = Column(String, default="RIGGED")  # UNRIGGED, RIGGED, WEIGHTED, VALIDATED, FAILED
+    rig_status = Column(String, default="RIGGED")
     has_deformation_tested = Column(Boolean, default=False)
     validation_results = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -189,7 +192,7 @@ class CharacterQualityReport(Base):
     texture_results = Column(JSON, nullable=True)
     rigging_results = Column(JSON, nullable=True)
     export_results = Column(JSON, nullable=True)
-    overall_status = Column(String, default="PASS")  # PASS, WARNING, FAIL
+    overall_status = Column(String, default="PASS")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     generation = relationship("CharacterGeneration", back_populates="quality_report")
@@ -379,7 +382,6 @@ class ShotAdjustment(Base):
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     shot_id = Column(Integer, nullable=False, index=True)
 
-    # Character placement
     pos_x = Column(Float, default=0.0)
     pos_y = Column(Float, default=0.0)
     pos_z = Column(Float, default=0.0)
@@ -387,27 +389,21 @@ class ShotAdjustment(Base):
     rotation_y = Column(Float, default=0.0)
     ground_offset = Column(Float, default=0.0)
 
-    # Character animation
     speed = Column(Float, default=1.0)
     offset_sec = Column(Float, default=0.0)
     root_movement = Column(Boolean, default=True)
 
-    # Camera
     camera_pos_x = Column(Float, default=0.0)
     camera_pos_y = Column(Float, default=0.0)
     camera_pos_z = Column(Float, default=0.0)
     camera_fov = Column(Float, default=50.0)
     camera_movement = Column(String, default="standard")
 
-    # Lighting
     light_intensity = Column(Float, default=1.0)
     light_color_temp = Column(Float, default=5500.0)
     light_direction = Column(String, default="ambient")
 
-    # Scene
     environment_alignment = Column(Float, default=0.0)
-
-    # General override settings payload
     custom_params = Column(JSON, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -434,7 +430,7 @@ class QualityControlReport(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     shot_id = Column(Integer, nullable=True, index=True)
-    target_type = Column(String, nullable=False, default="shot")  # 'shot' or 'assembled_video'
+    target_type = Column(String, nullable=False, default="shot")
     video_path = Column(String, nullable=False)
     total_frames = Column(Integer, default=0)
     missing_frames = Column(Integer, default=0)
@@ -455,7 +451,7 @@ class ExportJob(Base):
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     status = Column(Enum(JobStatus), nullable=False, default=JobStatus.QUEUED)
     progress_percentage = Column(Integer, default=0)
-    resolution = Column(String, default="original")  # 720p, 1080p, original
+    resolution = Column(String, default="original")
     fps = Column(Integer, default=30)
     format = Column(String, default="mp4")
     audio_config = Column(JSON, nullable=True)
@@ -467,16 +463,7 @@ class ExportJob(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
-
-# -------------------------------------------------------------------------
-# NEW ARCHITECTURAL SUBSYSTEM ENTITIES (SECTIONS 3, 4, 5, 6, 7, 8)
-# -------------------------------------------------------------------------
-
 class Environment(Base):
-    """
-    3D Virtual Environments and Worlds (e.g., Erangel Ruins, Sosnovka Base).
-    Supports terrain, layout, atmosphere, lighting configurations, and asset links.
-    """
     __tablename__ = "environments"
 
     id = Column(String, primary_key=True, default=generate_uuid)
@@ -499,9 +486,6 @@ class Environment(Base):
 
 
 class EnvironmentAsset(Base):
-    """
-    Assets positioned inside 3D Environments (buildings, vehicles, props, terrain meshes).
-    """
     __tablename__ = "environment_assets"
 
     id = Column(String, primary_key=True, default=generate_uuid)
@@ -522,10 +506,6 @@ class EnvironmentAsset(Base):
 
 
 class VideoAnalysisResult(Base):
-    """
-    Persistent video analysis records: scene detection, frame rates,
-    character tracking bounding boxes, and camera motion estimations.
-    """
     __tablename__ = "video_analysis_results"
 
     id = Column(String, primary_key=True, default=generate_uuid)
@@ -545,10 +525,6 @@ class VideoAnalysisResult(Base):
 
 
 class ReconstructionBlueprintModel(Base):
-    """
-    Persistent reconstruction blueprint detailing character replacement strategy,
-    continuity checks, 3D character integration plans, and compositing parameters.
-    """
     __tablename__ = "reconstruction_blueprints"
 
     id = Column(String, primary_key=True, default=generate_uuid)
@@ -566,9 +542,6 @@ class ReconstructionBlueprintModel(Base):
 
 
 class ModelRecord(Base):
-    """
-    Central AI Model Registry tracking local and open-source models (TripoSR, U2-Net, MediaPipe).
-    """
     __tablename__ = "model_records"
 
     id = Column(String, primary_key=True)
@@ -596,9 +569,6 @@ class ModelRecord(Base):
 
 
 class ModelVersion(Base):
-    """
-    Specific version record for an AI model, tracking hash, weights, and compatibility.
-    """
     __tablename__ = "model_versions"
 
     id = Column(String, primary_key=True, default=generate_uuid)
@@ -616,9 +586,6 @@ class ModelVersion(Base):
 
 
 class WorkerRecord(Base):
-    """
-    Background worker node registration and health monitoring (GPU/CPU nodes).
-    """
     __tablename__ = "worker_records"
 
     id = Column(String, primary_key=True, default=generate_uuid)
@@ -641,9 +608,6 @@ class WorkerRecord(Base):
 
 
 class WorkerTask(Base):
-    """
-    Asynchronous task assigned to background processing workers.
-    """
     __tablename__ = "worker_tasks"
 
     id = Column(String, primary_key=True, default=generate_uuid)
@@ -666,9 +630,6 @@ class WorkerTask(Base):
 
 
 class SystemSetting(Base):
-    """
-    Centralized persistent configuration and platform settings.
-    """
     __tablename__ = "system_settings"
 
     key = Column(String, primary_key=True)
@@ -676,3 +637,77 @@ class SystemSetting(Base):
     description = Column(String, nullable=True)
     is_secret = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# -------------------------------------------------------------------------
+# VYRON AI LABS - MULTIMODAL CREATION MODELS
+# -------------------------------------------------------------------------
+
+class CreationModality(str, enum.Enum):
+    IMAGE = "image"
+    VIDEO = "video"
+    VOICE = "voice"
+    MUSIC = "music"
+
+class CreationItem(Base):
+    __tablename__ = "creation_items"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    modality = Column(String, nullable=False, index=True)
+    task_type = Column(String, nullable=False)
+    model_name = Column(String, nullable=False)
+    prompt = Column(Text, nullable=True)
+    negative_prompt = Column(Text, nullable=True)
+    status = Column(Enum(JobStatus), nullable=False, default=JobStatus.COMPLETED)
+    output_url = Column(String, nullable=False)
+    thumbnail_url = Column(String, nullable=True)
+    storage_path = Column(String, nullable=True)
+    duration_seconds = Column(Float, nullable=True)
+    dimensions = Column(String, nullable=True)
+    file_size = Column(Integer, nullable=True)
+    mime_type = Column(String, nullable=True)
+    parameters = Column(JSON, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="creations")
+
+
+class VoiceProfile(Base):
+    __tablename__ = "voice_profiles"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    sample_audio_url = Column(String, nullable=False)
+    sample_storage_path = Column(String, nullable=True)
+    consent_confirmed = Column(Boolean, nullable=False, default=False)
+    consent_timestamp = Column(DateTime, default=datetime.utcnow)
+    voice_features = Column(JSON, nullable=True)
+    model_name = Column(String, default="OpenVoice V2")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="voice_profiles")
+
+
+class PromptTemplate(Base):
+    __tablename__ = "prompt_templates"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    modality = Column(String, nullable=False)
+    prompt_text = Column(Text, nullable=False)
+    negative_prompt = Column(Text, nullable=True)
+    tags = Column(JSON, default=list)
+    is_favorite = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="saved_prompts")
