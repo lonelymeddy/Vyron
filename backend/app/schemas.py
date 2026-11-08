@@ -692,3 +692,146 @@ class SystemSettingSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+# -------------------------------------------------------------------------
+# VYRON AI LABS - MULTIMODAL SCHEMAS
+# -------------------------------------------------------------------------
+
+class CreationItemResponse(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    modality: str
+    task_type: str
+    model_name: str
+    prompt: Optional[str] = None
+    negative_prompt: Optional[str] = None
+    status: JobStatus
+    output_url: str
+    thumbnail_url: Optional[str] = None
+    duration_seconds: Optional[float] = None
+    dimensions: Optional[str] = None
+    file_size: Optional[int] = None
+    mime_type: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
+    metadata_json: Optional[Dict[str, Any]] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class CreationUpdate(BaseModel):
+    title: Optional[str] = None
+
+class ImageGenerateRequest(BaseModel):
+    prompt: str
+    negative_prompt: Optional[str] = None
+    model_name: Optional[str] = "FLUX.1 Schnell"
+    aspect_ratio: Optional[str] = "1:1"
+    width: Optional[int] = 1024
+    height: Optional[int] = 1024
+    num_variations: Optional[int] = 1
+    steps: Optional[int] = 4
+    seed: Optional[int] = None
+    output_quality: Optional[str] = "high"
+
+class ImageEditRequest(BaseModel):
+    prompt: str
+    image_url: Optional[str] = None
+    operation: Optional[str] = "edit"
+    model_name: Optional[str] = "Qwen-Image-Edit"
+    strength: Optional[float] = 0.75
+    scale_factor: Optional[int] = 2
+
+class VideoGenerateRequest(BaseModel):
+    prompt: str
+    negative_prompt: Optional[str] = None
+    model_name: Optional[str] = "Wan 2.1"
+    aspect_ratio: Optional[str] = "16:9"
+    duration: Optional[int] = 5
+    resolution: Optional[str] = "720p"
+    source_image_url: Optional[str] = None
+    camera_motion: Optional[str] = "auto"
+    seed: Optional[int] = None
+
+class VideoEditRequest(BaseModel):
+    operation: str
+    video_url: str
+    start_time: Optional[float] = 0.0
+    end_time: Optional[float] = None
+    resolution: Optional[str] = "720p"
+    aspect_ratio: Optional[str] = "16:9"
+
+class VoiceGenerateRequest(BaseModel):
+    text: str
+    voice_id: Optional[str] = "af_sarah"
+    speed: Optional[float] = 1.0
+    language: Optional[str] = "en-us"
+    model_name: Optional[str] = "Kokoro-82M"
+    profile_id: Optional[str] = None
+
+class VoiceProfileCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    sample_audio_url: str
+    consent_confirmed: bool
+
+class VoiceProfileResponse(BaseModel):
+    id: str
+    user_id: str
+    name: str
+    description: Optional[str] = None
+    sample_audio_url: str
+    consent_confirmed: bool
+    consent_timestamp: datetime
+    model_name: str
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class TranscriptionResponse(BaseModel):
+    text: str
+    language: str
+    duration: float
+    segments: List[Dict[str, Any]] = []
+
+class MusicGenerateRequest(BaseModel):
+    prompt: str
+    genre: Optional[str] = "Cinematic Electronic"
+    mood: Optional[str] = "Inspirational"
+    bpm: Optional[int] = 120
+    duration: Optional[int] = 30
+    is_instrumental: Optional[bool] = True
+    lyrics: Optional[str] = None
+    instruments: Optional[List[str]] = None
+    model_name: Optional[str] = "ACE-Step 1.5"
+
+class PromptOptimizeRequest(BaseModel):
+    prompt: str
+    modality: str = "image"
+    mode: str = "improve"
+
+class PromptTemplateCreate(BaseModel):
+    title: str
+    modality: str
+    prompt_text: str
+    negative_prompt: Optional[str] = None
+    tags: Optional[List[str]] = []
+    is_favorite: Optional[bool] = False
+
+class PromptTemplateResponse(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    modality: str
+    prompt_text: str
+    negative_prompt: Optional[str] = None
+    tags: List[str] = []
+    is_favorite: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

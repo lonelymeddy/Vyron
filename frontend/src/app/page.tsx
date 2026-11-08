@@ -2,14 +2,15 @@ import React from "react";
 import Link from "next/link";
 import {
   Sparkles,
+  Image as ImageIcon,
   Video,
-  Layers,
-  Compass,
+  Mic,
+  Music2,
+  Sliders,
   ArrowRight,
-  Wand2,
   ShieldCheck,
   Zap,
-  Film
+  Cpu
 } from "lucide-react";
 import { Button, Card, Badge, Logo } from "@/components/ui";
 
@@ -23,9 +24,9 @@ export default function LandingPage() {
             <Logo size={42} priority />
           </div>
           <div>
-            <span className="font-extrabold text-xl tracking-wider text-white block leading-none">VYRON AI</span>
+            <span className="font-extrabold text-xl tracking-wider text-white block leading-none">VYRON AI LABS</span>
             <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-1">
-              CREATE BEYOND REALITY
+              YOUR CREATIVE AI LABORATORY
             </p>
           </div>
         </Link>
@@ -36,9 +37,9 @@ export default function LandingPage() {
               Sign In
             </Button>
           </Link>
-          <Link href="/create">
+          <Link href="/dashboard">
             <Button size="sm">
-              GET STARTED
+              Launch Studio
               <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </Link>
@@ -49,92 +50,110 @@ export default function LandingPage() {
       <section className="py-20 px-6 max-w-6xl mx-auto text-center flex flex-col items-center">
         <Badge variant="purple" className="mb-6 py-1 px-3.5 text-xs font-semibold tracking-wide">
           <Sparkles className="w-3.5 h-3.5 mr-1.5 text-violet-400" />
-          AI CINEMATIC CGI VIDEO CREATION PLATFORM
+          YOUR CREATIVE AI LABORATORY &bull; MULTIMODAL PLATFORM
         </Badge>
 
         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight max-w-4xl leading-tight text-slate-100">
-          Transform Character Images into <span className="gradient-text">Cinematic 3D Video Masterpieces</span>
+          One Unified Platform for <span className="gradient-text">Images, Videos, Voice & Music</span>
         </h1>
 
         <p className="mt-6 text-slate-400 text-base md:text-lg max-w-2xl leading-relaxed">
-          VYRON AI provides high-precision AI video generation to replace characters, recreate CGI scenes, and render original virtual worlds with natural language control.
+          VYRON AI LABS gives creators direct access to state-of-the-art open AI models across four dedicated creative studios, powered by real neural generation.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Link href="/create">
+          <Link href="/dashboard">
             <Button size="lg" className="px-8 shadow-xl">
               <Sparkles className="w-5 h-5 mr-2" />
-              GET STARTED NOW
+              ENTER THE LABS
             </Button>
           </Link>
-          <Link href="/dashboard">
+          <Link href="/labs/image">
             <Button variant="outline" size="lg" className="px-6">
-              <Compass className="w-5 h-5 mr-2" />
-              Studio Workspace
+              <ImageIcon className="w-5 h-5 mr-2" />
+              Explore Image Lab
             </Button>
           </Link>
-        </div>
-
-        {/* HERO SHOWCASE PREVIEW */}
-        <div className="mt-16 w-full max-w-5xl rounded-2xl overflow-hidden border border-slate-800/90 glow-violet bg-[#0c1017] relative group shadow-2xl">
-          <img
-            src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop"
-            alt="VYRON AI Cinematic 3D Scene"
-            className="w-full h-[360px] md:h-[460px] object-cover object-center opacity-85 group-hover:opacity-100 transition-opacity duration-300"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#07090e] via-transparent to-transparent flex flex-col justify-end p-6 md:p-8 text-left">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <Badge variant="cyan">PUBG CGI World</Badge>
-              <Badge variant="purple">4K Ultra HD Engine</Badge>
-              <Badge variant="success">Active Render Output</Badge>
-            </div>
-            <h3 className="text-2xl font-bold text-white">Character Replacement & Scene Synthesis</h3>
-            <p className="text-slate-300 text-xs md:text-sm max-w-xl mt-1 leading-relaxed">
-              Maintained original physics, camera motion, and cinematic lighting while replacing character avatars with custom high-resolution inputs.
-            </p>
-          </div>
         </div>
       </section>
 
-      {/* CORE MODES SECTION */}
+      {/* FOUR MAIN AI LABS */}
       <section className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-800/80 w-full">
         <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-white">Three Distinct Generation Modes</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-white">The Four Creative AI Studios</h2>
           <p className="text-slate-400 text-sm mt-2 max-w-xl mx-auto">
-            Engineered specifically for high-precision CGI production workflows
+            Engineered around purpose-built open-source foundation models
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="hover:border-violet-500/50 transition-colors p-6 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20">
-              <Video className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-slate-100">Mode 1: Character Replacement</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Upload a character photo and a reference video. Replaces the original character while retaining realistic body motion, action timing, and scene physics.
-            </p>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Link href="/labs/image" className="group">
+            <Card className="hover:border-violet-500/50 transition-colors p-6 space-y-3 h-full flex flex-col justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20 mb-3">
+                  <ImageIcon className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-100 group-hover:text-violet-300 transition-colors">Image Lab</h3>
+                <p className="text-slate-400 text-xs leading-relaxed mt-1">
+                  FLUX.1 Schnell & Qwen-Image generation, Qwen-Image-Edit, Real-ESRGAN upscaling, and rembg background removal.
+                </p>
+              </div>
+              <div className="text-xs font-semibold text-violet-400 pt-2 flex items-center">
+                Launch Studio &rarr;
+              </div>
+            </Card>
+          </Link>
 
-          <Card className="hover:border-indigo-500/50 transition-colors p-6 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
-              <Layers className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-slate-100">Mode 2: Full CGI Recreation</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Recreates reference video camera moves and lighting inside fully rendered 3D environments featuring customizable outfits, vehicles, and weather settings.
-            </p>
-          </Card>
+          <Link href="/labs/video" className="group">
+            <Card className="hover:border-blue-500/50 transition-colors p-6 space-y-3 h-full flex flex-col justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20 mb-3">
+                  <Video className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-100 group-hover:text-blue-300 transition-colors">Video Lab</h3>
+                <p className="text-slate-400 text-xs leading-relaxed mt-1">
+                  Wan 2.1, Wan 2.2 & LTX-Video text-to-video, image animation, and FFmpeg video transformations.
+                </p>
+              </div>
+              <div className="text-xs font-semibold text-blue-400 pt-2 flex items-center">
+                Launch Studio &rarr;
+              </div>
+            </Card>
+          </Link>
 
-          <Card className="hover:border-cyan-500/50 transition-colors p-6 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
-              <Wand2 className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-slate-100">Mode 3: Original CGI Creation</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Synthesize brand new 3D cinematic scenes directly from prompt instructions, environments, and character assets without requiring a reference video.
-            </p>
-          </Card>
+          <Link href="/labs/voice" className="group">
+            <Card className="hover:border-emerald-500/50 transition-colors p-6 space-y-3 h-full flex flex-col justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 mb-3">
+                  <Mic className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-100 group-hover:text-emerald-300 transition-colors">Voice Lab</h3>
+                <p className="text-slate-400 text-xs leading-relaxed mt-1">
+                  Kokoro-82M text-to-speech, OpenVoice V2 authorized voice cloning, and OpenAI Whisper audio transcription.
+                </p>
+              </div>
+              <div className="text-xs font-semibold text-emerald-400 pt-2 flex items-center">
+                Launch Studio &rarr;
+              </div>
+            </Card>
+          </Link>
+
+          <Link href="/labs/music" className="group">
+            <Card className="hover:border-amber-500/50 transition-colors p-6 space-y-3 h-full flex flex-col justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 mb-3">
+                  <Music2 className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-100 group-hover:text-amber-300 transition-colors">Music Lab</h3>
+                <p className="text-slate-400 text-xs leading-relaxed mt-1">
+                  ACE-Step 1.5 music creation, full vocal and instrumental generation, lyrics integration, and audio synthesis.
+                </p>
+              </div>
+              <div className="text-xs font-semibold text-amber-400 pt-2 flex items-center">
+                Launch Studio &rarr;
+              </div>
+            </Card>
+          </Link>
         </div>
       </section>
 
@@ -144,24 +163,24 @@ export default function LandingPage() {
           <div className="p-4 rounded-xl bg-[#0c1017] border border-slate-800/80 flex items-start gap-3">
             <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-slate-200 text-xs mb-1">Private Asset Protection</h4>
-              <p>Uploaded character images and video references are stored securely with signed cloud access controls.</p>
+              <h4 className="font-bold text-slate-200 text-xs mb-1">Ethical AI & Authorized Voice</h4>
+              <p>Cloning requires verified consent. User creations and voice profiles are isolated with secure file permissions.</p>
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-[#0c1017] border border-slate-800/80 flex items-start gap-3">
             <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-slate-200 text-xs mb-1">Queue & Render Monitoring</h4>
-              <p>Monitor status updates live across Queued, Processing, and Post-processing render pipeline stages.</p>
+              <h4 className="font-bold text-slate-200 text-xs mb-1">Real Background Workers</h4>
+              <p>Heavy models execute asynchronously through managed workers with actual progress tracking and persistence.</p>
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-[#0c1017] border border-slate-800/80 flex items-start gap-3">
-            <Film className="w-5 h-5 text-violet-400 shrink-0 mt-0.5" />
+            <Cpu className="w-5 h-5 text-violet-400 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-slate-200 text-xs mb-1">Multi-Provider AI Registry</h4>
-              <p>Modular backend orchestration ready for production Kling AI, Runway AI, or custom video engines.</p>
+              <h4 className="font-bold text-slate-200 text-xs mb-1">Central AI Model Registry</h4>
+              <p>Inspect model status, verify open Apache 2.0 / MIT licenses, checkpoint weights, and hardware compatibility.</p>
             </div>
           </div>
         </div>
@@ -174,11 +193,11 @@ export default function LandingPage() {
             <div className="relative flex items-center justify-center">
               <Logo size={24} />
             </div>
-            <span className="font-bold text-slate-300">VYRON AI</span>
+            <span className="font-bold text-slate-300">VYRON AI LABS</span>
             <span className="text-slate-600">&bull;</span>
-            <span className="text-[10px] tracking-widest text-slate-500 uppercase">CREATE BEYOND REALITY</span>
+            <span className="text-[10px] tracking-widest text-slate-500 uppercase">YOUR CREATIVE AI LABORATORY</span>
           </div>
-          <p>&copy; 2026 VYRON AI Studio. All rights reserved.</p>
+          <p>&copy; 2026 VYRON AI LABS. All rights reserved.</p>
         </div>
       </footer>
     </div>
