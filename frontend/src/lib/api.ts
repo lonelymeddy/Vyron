@@ -259,13 +259,47 @@ async function request<T>(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    const message =
+    const rawDetail =
       (typeof errorData.detail === "string" && errorData.detail) ||
       (Array.isArray(errorData.detail) &&
         errorData.detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ")) ||
       errorData.message ||
-      `Request failed with status ${response.status}`;
-    throw new Error(message);
+      "";
+
+    // Internal diagnostic logging for administrators and debugging
+    if (typeof window !== "undefined") {
+      console.warn(`[VYRON AI Studio Internal Diagnostic] HTTP ${response.status} on ${endpoint}:`, {
+        rawDetail,
+        errorId: errorData.error_id,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Transform technical/developer messages into clean, commercial user messages
+    const lower = (rawDetail || "").toLowerCase();
+    let friendlyMessage = "This feature is temporarily unavailable. Please try again.";
+
+    if (response.status === 401) {
+      friendlyMessage = "Please sign in to continue.";
+    } else if (response.status === 404) {
+      friendlyMessage = "The requested creation or asset could not be found.";
+    } else if (lower.includes("credit")) {
+      friendlyMessage = "Your request could not be completed. No credits were deducted.";
+    } else if (lower.includes("consent") || lower.includes("authorization")) {
+      friendlyMessage = "Explicit user authorization is required before creating a voice profile.";
+    } else if (lower.includes("image")) {
+      friendlyMessage = "Image generation is temporarily unavailable. Please try again.";
+    } else if (lower.includes("music") || lower.includes("song")) {
+      friendlyMessage = "We couldn't generate your music. Please try again.";
+    } else if (lower.includes("video")) {
+      friendlyMessage = "Your video could not be processed. Please try again.";
+    } else if (lower.includes("voice") || lower.includes("speech") || lower.includes("audio")) {
+      friendlyMessage = "Voice narration is temporarily unavailable. Please try again.";
+    } else if (rawDetail && !lower.includes("internal") && !lower.includes("cuda") && !lower.includes("500") && !lower.includes("traceback") && !lower.includes("exception") && !lower.includes("module")) {
+      friendlyMessage = rawDetail;
+    }
+
+    throw new Error(friendlyMessage);
   }
 
   return response.json();

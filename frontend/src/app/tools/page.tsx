@@ -102,7 +102,7 @@ export default function ToolsPage() {
               AI Prompt Studio & Creative Assistant
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Optimize prompts for FLUX, Wan, Kokoro, & ACE-Step, or generate full song lyrics and video scripts.
+              Refine and enrich creative prompts, or generate complete song lyrics and video scripts.
             </p>
           </div>
 
@@ -125,7 +125,7 @@ export default function ToolsPage() {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              Creative Assistant
+              Creative Writing
             </button>
           </div>
         </div>
@@ -135,11 +135,11 @@ export default function ToolsPage() {
             <Card className="p-6 bg-[#0d121c] border border-slate-800/80 space-y-4">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-violet-400" />
-                Prompt Optimization Engine
+                Prompt Enhancement
               </h3>
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                  Target AI Modality
+                  Target Creative Studio
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   {[
@@ -166,12 +166,12 @@ export default function ToolsPage() {
 
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                  Your Draft Idea / Raw Prompt
+                  Your Draft Idea or Keywords
                 </label>
                 <textarea
                   value={rawPrompt}
                   onChange={(e) => setRawPrompt(e.target.value)}
-                  placeholder="e.g. A cyber samurai in neon rain..."
+                  placeholder="e.g. A serene obsidian monolith rising from misty water at dusk..."
                   rows={5}
                   className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
                 />
@@ -185,12 +185,12 @@ export default function ToolsPage() {
                 {optimizing ? (
                   <span className="flex items-center gap-2">
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    Optimizing Model Keywords...
+                    Enriching Prompt...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
-                    Enhance & Expand Prompt
+                    Enrich Creative Prompt
                   </span>
                 )}
               </Button>
@@ -199,7 +199,7 @@ export default function ToolsPage() {
             <Card className="p-6 bg-[#0d121c] border border-slate-800/80 flex flex-col justify-between space-y-4">
               <div>
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <h3 className="text-sm font-bold text-white">Enhanced Model Output</h3>
+                  <h3 className="text-sm font-bold text-white">Refined Creative Prompt</h3>
                   {optimizedPrompt && (
                     <button
                       onClick={() => handleCopy(optimizedPrompt)}
@@ -218,14 +218,14 @@ export default function ToolsPage() {
                     </p>
                   ) : (
                     <p className="text-xs text-slate-600 italic">
-                      Your refined cinematic prompt will be displayed here, structured specifically for open diffusion & transformer weights.
+                      Your refined cinematic prompt will be displayed here, tailored to maximize visual and atmospheric fidelity.
                     </p>
                   )}
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 leading-normal">
-                Prompt Studio incorporates negative keyword suppression, camera lens parameters, and lighting styles automatically tailored to the selected lab.
+                Prompt Studio integrates lighting atmosphere, composition balance, and camera angles automatically for your selected creative studio.
               </div>
             </Card>
           </div>
@@ -234,13 +234,13 @@ export default function ToolsPage() {
             <Card className="p-6 bg-[#0d121c] border border-slate-800/80 space-y-4">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-violet-400" />
-                Creative Assistant
+                Creative Writing Assistant
               </h3>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    Generation Type
+                    Writing Type
                   </label>
                   <select
                     value={assistantType}
@@ -254,7 +254,7 @@ export default function ToolsPage() {
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    Tone / Style
+                    Tone & Style
                   </label>
                   <select
                     value={tone}
@@ -262,7 +262,7 @@ export default function ToolsPage() {
                     className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
                   >
                     <option value="cinematic">Cinematic & Atmospheric</option>
-                    <option value="futuristic">Futuristic Cyberpunk</option>
+                    <option value="futuristic">Futuristic & Bold</option>
                     <option value="emotional">Emotional & Melodic</option>
                     <option value="inspirational">Uplifting Anthem</option>
                   </select>
@@ -276,7 +276,7 @@ export default function ToolsPage() {
                 <textarea
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g. Breakthrough into a new digital reality beyond limits..."
+                  placeholder="e.g. Breakthrough into a new world beyond limits..."
                   rows={4}
                   className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
                 />
@@ -304,7 +304,7 @@ export default function ToolsPage() {
             <Card className="p-6 bg-[#0d121c] border border-slate-800/80 flex flex-col justify-between space-y-4">
               <div>
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <h3 className="text-sm font-bold text-white">Assistant Generation</h3>
+                  <h3 className="text-sm font-bold text-white">Generated Content</h3>
                   {assistantOutput && (
                     <button
                       onClick={() => handleCopy(assistantOutput)}

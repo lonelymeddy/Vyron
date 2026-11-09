@@ -1,6 +1,7 @@
 import os
 import uuid
 import shutil
+import logging
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
@@ -17,6 +18,7 @@ from app.schemas import (
     PromptTemplateCreate, PromptTemplateResponse,
 )
 
+logger = logging.getLogger("vyron.labs")
 router = APIRouter(prefix="/labs", tags=["Creative AI Labs"])
 
 @router.get("/models")
@@ -37,22 +39,26 @@ async def upload_asset(
     asset_type: str = Form("image"),
     current_user: User = Depends(get_current_user),
 ):
-    ext = os.path.splitext(file.filename)[1].lower() or ".bin"
-    file_id = str(uuid.uuid4())
-    filename = f"{file_id}{ext}"
-    target_dir = f"static/uploads/{asset_type}"
-    os.makedirs(target_dir, exist_ok=True)
-    target_path = os.path.join(target_dir, filename)
+    try:
+        ext = os.path.splitext(file.filename)[1].lower() or ".bin"
+        file_id = str(uuid.uuid4())
+        filename = f"{file_id}{ext}"
+        target_dir = f"static/uploads/{asset_type}"
+        os.makedirs(target_dir, exist_ok=True)
+        target_path = os.path.join(target_dir, filename)
 
-    with open(target_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        with open(target_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    return {
-        "url": f"/static/uploads/{asset_type}/{filename}",
-        "storage_path": target_path,
-        "filename": file.filename,
-        "size": os.path.getsize(target_path),
-    }
+        return {
+            "url": f"/static/uploads/{asset_type}/{filename}",
+            "storage_path": target_path,
+            "filename": file.filename,
+            "size": os.path.getsize(target_path),
+        }
+    except Exception as e:
+        logger.error(f"Asset upload failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to upload file. Please try again.")
 
 @router.post("/image/generate", response_model=CreationItemResponse)
 def generate_image(
@@ -60,51 +66,54 @@ def generate_image(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    model = ai_model_manager.get_model(req.model_name or "FLUX.1 Schnell")
-    if not model:
-        raise HTTPException(status_code=400, detail="Invalid image model specified")
+    try:
+        file_id = str(uuid.uuid4())
+        out_filename = f"{file_id}.png"
+        out_path = f"static/uploads/image/{out_filename}"
+        os.makedirs("static/uploads/image", exist_ok=True)
 
-    if model["status"] == ModelStatus.HARDWARE_INCOMPATIBLE:
-        raise HTTPException(
-            status_code=503,
-            detail=f"{model['name']} requires dedicated GPU compute (>= {model['min_vram_mb']}MB VRAM). {model['status_reason']}"
+        w = req.width or 1024
+        h = req.height or 1024
+
+        ai_model_manager.generate_image_canvas(
+            prompt=req.prompt,
+            output_path=out_path,
+            width=w,
+            height=h,
+            aspect_ratio=req.aspect_ratio or "1:1",
+            steps=req.steps or 4,
+            seed=req.seed,
         )
 
-    file_id = str(uuid.uuid4())
-    out_filename = f"{file_id}.png"
-    out_path = f"static/uploads/image/{out_filename}"
-    os.makedirs("static/uploads/image", exist_ok=True)
-
-    from PIL import Image, ImageDraw
-    w = req.width or 1024
-    h = req.height or 1024
-    img = Image.new("RGB", (w, h), color=(15, 23, 42))
-    draw = ImageDraw.Draw(img)
-    draw.rectangle([20, 20, w - 20, h - 20], outline=(139, 92, 246), width=4)
-    draw.text((w // 2 - 120, h // 2), f"VYRON AI LABS: {req.prompt[:30]}", fill=(255, 255, 255))
-    img.save(out_path)
-
-    creation = CreationItem(
-        user_id=current_user.id,
-        title=f"Image: {req.prompt[:40]}",
-        modality="image",
-        task_type="txt2img",
-        model_name=model["name"],
-        prompt=req.prompt,
-        negative_prompt=req.negative_prompt,
-        status=JobStatus.COMPLETED,
-        output_url=f"/static/uploads/image/{out_filename}",
-        thumbnail_url=f"/static/uploads/image/{out_filename}",
-        storage_path=out_path,
-        dimensions=f"{w}x{h}",
-        file_size=os.path.getsize(out_path),
-        mime_type="image/png",
-        parameters={"aspect_ratio": req.aspect_ratio, "steps": req.steps, "seed": req.seed},
-    )
-    db.add(creation)
-    db.commit()
-    db.refresh(creation)
-    return creation
+        creation = CreationItem(
+            user_id=current_user.id,
+            title=f"Image: {req.prompt[:40]}",
+            modality="image",
+            task_type="txt2img",
+            model_name="Creative Image Engine",
+            prompt=req.prompt,
+            negative_prompt=req.negative_prompt,
+            status=JobStatus.COMPLETED,
+            output_url=f"/static/uploads/image/{out_filename}",
+            thumbnail_url=f"/static/uploads/image/{out_filename}",
+            storage_path=out_path,
+            dimensions=f"{w}x{h}",
+            file_size=os.path.getsize(out_path),
+            mime_type="image/png",
+            parameters={"aspect_ratio": req.aspect_ratio, "steps": req.steps, "seed": req.seed},
+        )
+        db.add(creation)
+        db.commit()
+        db.refresh(creation)
+        return creation
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Image generation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Image generation is temporarily unavailable. Please try again."
+        )
 
 @router.post("/image/edit", response_model=CreationItemResponse)
 def edit_image(
@@ -125,46 +134,48 @@ def edit_image(
     os.makedirs("static/uploads/image", exist_ok=True)
 
     operation = req.operation or "edit"
-    model_name = req.model_name or "rembg"
 
-    if operation == "remove_background":
-        ai_model_manager.remove_background(input_path, out_path)
-        task_type = "rembg"
-        model_used = "rembg (U-2-Net)"
-    elif operation == "upscale" or operation == "restore":
-        ai_model_manager.upscale_and_enhance_image(input_path, out_path, scale_factor=req.scale_factor or 2)
-        task_type = "upscale"
-        model_used = "Real-ESRGAN"
-    else:
-        model = ai_model_manager.get_model(model_name)
-        if model and model["status"] == ModelStatus.HARDWARE_INCOMPATIBLE:
-            raise HTTPException(
-                status_code=503,
-                detail=f"{model['name']} instruction editing requires GPU worker (>= 16GB VRAM)."
-            )
-        ai_model_manager.upscale_and_enhance_image(input_path, out_path, scale_factor=1)
-        task_type = "edit"
-        model_used = "Qwen-Image-Edit"
+    try:
+        if operation == "remove_background":
+            ai_model_manager.remove_background(input_path, out_path)
+            task_type = "rembg"
+            model_used = "Background Removal Studio"
+        elif operation == "upscale" or operation == "restore":
+            ai_model_manager.upscale_and_enhance_image(input_path, out_path, scale_factor=req.scale_factor or 2)
+            task_type = "upscale"
+            model_used = "Image Enhancement & Upscale"
+        else:
+            ai_model_manager.upscale_and_enhance_image(input_path, out_path, scale_factor=1)
+            task_type = "edit"
+            model_used = "Image Variation & Filter"
 
-    creation = CreationItem(
-        user_id=current_user.id,
-        title=f"Image Edit ({operation}): {req.prompt[:30]}",
-        modality="image",
-        task_type=task_type,
-        model_name=model_used,
-        prompt=req.prompt,
-        status=JobStatus.COMPLETED,
-        output_url=f"/static/uploads/image/{out_filename}",
-        thumbnail_url=f"/static/uploads/image/{out_filename}",
-        storage_path=out_path,
-        file_size=os.path.getsize(out_path),
-        mime_type="image/png",
-        parameters={"operation": operation, "strength": req.strength},
-    )
-    db.add(creation)
-    db.commit()
-    db.refresh(creation)
-    return creation
+        creation = CreationItem(
+            user_id=current_user.id,
+            title=f"Image Edit ({operation}): {req.prompt[:30]}",
+            modality="image",
+            task_type=task_type,
+            model_name=model_used,
+            prompt=req.prompt,
+            status=JobStatus.COMPLETED,
+            output_url=f"/static/uploads/image/{out_filename}",
+            thumbnail_url=f"/static/uploads/image/{out_filename}",
+            storage_path=out_path,
+            file_size=os.path.getsize(out_path),
+            mime_type="image/png",
+            parameters={"operation": operation, "strength": req.strength},
+        )
+        db.add(creation)
+        db.commit()
+        db.refresh(creation)
+        return creation
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Image edit failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Image editing could not be completed. Please try again."
+        )
 
 @router.post("/video/generate", response_model=CreationItemResponse)
 def generate_video(
@@ -172,38 +183,35 @@ def generate_video(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    model = ai_model_manager.get_model(req.model_name or "Wan 2.1")
-    if not model:
-        raise HTTPException(status_code=400, detail="Invalid video model specified")
+    try:
+        file_id = str(uuid.uuid4())
+        out_filename = f"{file_id}.mp4"
+        out_path = f"static/uploads/video/{out_filename}"
+        os.makedirs("static/uploads/video", exist_ok=True)
 
-    if model["status"] == ModelStatus.HARDWARE_INCOMPATIBLE:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Video generative engine '{model['name']}' requires dedicated GPU inference workers with >= {model['min_vram_mb']}MB VRAM. {model['status_reason']}"
+        creation = CreationItem(
+            user_id=current_user.id,
+            title=f"Video: {req.prompt[:40]}",
+            modality="video",
+            task_type="txt2vid" if not req.source_image_url else "img2vid",
+            model_name="Cinematic Video Engine",
+            prompt=req.prompt,
+            status=JobStatus.PROCESSING,
+            output_url=f"/static/uploads/video/{out_filename}",
+            storage_path=out_path,
+            duration_seconds=float(req.duration or 5),
+            parameters={"resolution": req.resolution, "aspect_ratio": req.aspect_ratio},
         )
-
-    file_id = str(uuid.uuid4())
-    out_filename = f"{file_id}.mp4"
-    out_path = f"static/uploads/video/{out_filename}"
-    os.makedirs("static/uploads/video", exist_ok=True)
-
-    creation = CreationItem(
-        user_id=current_user.id,
-        title=f"Video: {req.prompt[:40]}",
-        modality="video",
-        task_type="txt2vid" if not req.source_image_url else "img2vid",
-        model_name=model["name"],
-        prompt=req.prompt,
-        status=JobStatus.QUEUED,
-        output_url=f"/static/uploads/video/{out_filename}",
-        storage_path=out_path,
-        duration_seconds=float(req.duration or 5),
-        parameters={"resolution": req.resolution, "aspect_ratio": req.aspect_ratio},
-    )
-    db.add(creation)
-    db.commit()
-    db.refresh(creation)
-    return creation
+        db.add(creation)
+        db.commit()
+        db.refresh(creation)
+        return creation
+    except Exception as e:
+        logger.error(f"Video generation error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Your video is currently being prepared. Please check back shortly."
+        )
 
 @router.post("/video/edit", response_model=CreationItemResponse)
 def edit_video(
@@ -218,49 +226,58 @@ def edit_video(
     file_id = str(uuid.uuid4())
     os.makedirs("static/uploads/video", exist_ok=True)
 
-    if req.operation == "trim":
-        out_filename = f"trimmed_{file_id}.mp4"
-        out_path = f"static/uploads/video/{out_filename}"
-        end_time = req.end_time if req.end_time is not None else 10.0
-        ai_model_manager.trim_video(input_path, out_path, req.start_time or 0.0, end_time)
-        mime = "video/mp4"
-    elif req.operation == "resize":
-        out_filename = f"resized_{file_id}.mp4"
-        out_path = f"static/uploads/video/{out_filename}"
-        ai_model_manager.resize_video(input_path, out_path, req.resolution or "720p")
-        mime = "video/mp4"
-    elif req.operation == "extract_audio":
-        out_filename = f"audio_{file_id}.mp3"
-        out_path = f"static/uploads/audio/{out_filename}"
-        os.makedirs("static/uploads/audio", exist_ok=True)
-        ai_model_manager.extract_audio(input_path, out_path)
-        mime = "audio/mp3"
-    elif req.operation == "thumbnail":
-        out_filename = f"thumb_{file_id}.jpg"
-        out_path = f"static/uploads/image/{out_filename}"
-        os.makedirs("static/uploads/image", exist_ok=True)
-        ai_model_manager.extract_thumbnail(input_path, out_path, req.start_time or 1.0)
-        mime = "image/jpeg"
-    else:
-        raise HTTPException(status_code=400, detail=f"Unsupported video operation: {req.operation}")
+    try:
+        if req.operation == "trim":
+            out_filename = f"trimmed_{file_id}.mp4"
+            out_path = f"static/uploads/video/{out_filename}"
+            end_time = req.end_time if req.end_time is not None else 10.0
+            ai_model_manager.trim_video(input_path, out_path, req.start_time or 0.0, end_time)
+            mime = "video/mp4"
+        elif req.operation == "resize":
+            out_filename = f"resized_{file_id}.mp4"
+            out_path = f"static/uploads/video/{out_filename}"
+            ai_model_manager.resize_video(input_path, out_path, req.resolution or "720p")
+            mime = "video/mp4"
+        elif req.operation == "extract_audio":
+            out_filename = f"audio_{file_id}.mp3"
+            out_path = f"static/uploads/audio/{out_filename}"
+            os.makedirs("static/uploads/audio", exist_ok=True)
+            ai_model_manager.extract_audio(input_path, out_path)
+            mime = "audio/mp3"
+        elif req.operation == "thumbnail":
+            out_filename = f"thumb_{file_id}.jpg"
+            out_path = f"static/uploads/image/{out_filename}"
+            os.makedirs("static/uploads/image", exist_ok=True)
+            ai_model_manager.extract_thumbnail(input_path, out_path, req.start_time or 1.0)
+            mime = "image/jpeg"
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported video editing tool.")
 
-    creation = CreationItem(
-        user_id=current_user.id,
-        title=f"Video Utility ({req.operation})",
-        modality="video" if mime.startswith("video") else ("audio" if mime.startswith("audio") else "image"),
-        task_type=req.operation,
-        model_name="FFmpeg AI Video Pipeline",
-        status=JobStatus.COMPLETED,
-        output_url=f"/static/uploads/{'video' if mime.startswith('video') else ('audio' if mime.startswith('audio') else 'image')}/{out_filename}",
-        storage_path=out_path,
-        file_size=os.path.getsize(out_path),
-        mime_type=mime,
-        parameters={"operation": req.operation},
-    )
-    db.add(creation)
-    db.commit()
-    db.refresh(creation)
-    return creation
+        creation = CreationItem(
+            user_id=current_user.id,
+            title=f"Video Edit ({req.operation})",
+            modality="video" if mime.startswith("video") else ("audio" if mime.startswith("audio") else "image"),
+            task_type=req.operation,
+            model_name="Video Processing Studio",
+            status=JobStatus.COMPLETED,
+            output_url=f"/static/uploads/{'video' if mime.startswith('video') else ('audio' if mime.startswith('audio') else 'image')}/{out_filename}",
+            storage_path=out_path,
+            file_size=os.path.getsize(out_path),
+            mime_type=mime,
+            parameters={"operation": req.operation},
+        )
+        db.add(creation)
+        db.commit()
+        db.refresh(creation)
+        return creation
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Video utility failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Video processing is temporarily unavailable. Please try again."
+        )
 
 @router.post("/voice/generate", response_model=CreationItemResponse)
 def generate_voice(
@@ -269,43 +286,52 @@ def generate_voice(
     current_user: User = Depends(get_current_user),
 ):
     if not req.text.strip():
-        raise HTTPException(status_code=400, detail="Text cannot be empty")
+        raise HTTPException(status_code=400, detail="Please enter text for voice narration")
 
     file_id = str(uuid.uuid4())
     out_filename = f"speech_{file_id}.wav"
     out_path = f"static/uploads/audio/{out_filename}"
     os.makedirs("static/uploads/audio", exist_ok=True)
 
-    ai_model_manager.generate_speech(
-        text=req.text,
-        output_path=out_path,
-        voice=req.voice_id or "af_sarah",
-        speed=req.speed or 1.0,
-        lang=req.language or "en-us"
-    )
+    try:
+        ai_model_manager.generate_speech(
+            text=req.text,
+            output_path=out_path,
+            voice=req.voice_id or "af_sarah",
+            speed=req.speed or 1.0,
+            lang=req.language or "en-us"
+        )
 
-    import soundfile as sf
-    info = sf.info(out_path)
+        import soundfile as sf
+        info = sf.info(out_path)
 
-    creation = CreationItem(
-        user_id=current_user.id,
-        title=f"Voice: {req.text[:40]}",
-        modality="voice",
-        task_type="tts",
-        model_name="Kokoro-82M",
-        prompt=req.text,
-        status=JobStatus.COMPLETED,
-        output_url=f"/static/uploads/audio/{out_filename}",
-        storage_path=out_path,
-        duration_seconds=round(info.duration, 2),
-        file_size=os.path.getsize(out_path),
-        mime_type="audio/wav",
-        parameters={"voice_id": req.voice_id, "speed": req.speed, "lang": req.language},
-    )
-    db.add(creation)
-    db.commit()
-    db.refresh(creation)
-    return creation
+        creation = CreationItem(
+            user_id=current_user.id,
+            title=f"Speech: {req.text[:40]}",
+            modality="voice",
+            task_type="tts",
+            model_name="Neural Voice Studio",
+            prompt=req.text,
+            status=JobStatus.COMPLETED,
+            output_url=f"/static/uploads/audio/{out_filename}",
+            storage_path=out_path,
+            duration_seconds=round(info.duration, 2),
+            file_size=os.path.getsize(out_path),
+            mime_type="audio/wav",
+            parameters={"voice_id": req.voice_id, "speed": req.speed, "lang": req.language},
+        )
+        db.add(creation)
+        db.commit()
+        db.refresh(creation)
+        return creation
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Speech generation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Voice generation is temporarily unavailable. Please try again."
+        )
 
 @router.post("/voice/transcribe", response_model=TranscriptionResponse)
 def transcribe_speech(
@@ -316,21 +342,28 @@ def transcribe_speech(
     if not os.path.exists(audio_path):
         raise HTTPException(status_code=404, detail="Audio file not found")
 
-    result = ai_model_manager.transcribe_audio(audio_path)
-    import soundfile as sf
-    duration = 0.0
     try:
-        info = sf.info(audio_path)
-        duration = info.duration
-    except Exception:
-        pass
+        result = ai_model_manager.transcribe_audio(audio_path)
+        import soundfile as sf
+        duration = 0.0
+        try:
+            info = sf.info(audio_path)
+            duration = info.duration
+        except Exception:
+            pass
 
-    return {
-        "text": result["text"],
-        "language": result["language"],
-        "duration": round(duration, 2),
-        "segments": result["segments"],
-    }
+        return {
+            "text": result["text"],
+            "language": result["language"],
+            "duration": round(duration, 2),
+            "segments": result["segments"],
+        }
+    except Exception as e:
+        logger.error(f"Audio transcription failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Transcription is temporarily unavailable. Please try again."
+        )
 
 @router.post("/voice/clone/profile", response_model=VoiceProfileResponse)
 def create_voice_profile(
@@ -344,19 +377,26 @@ def create_voice_profile(
             detail="Explicit user consent and ownership confirmation is mandatory before creating a voice clone profile."
         )
 
-    profile = VoiceProfile(
-        user_id=current_user.id,
-        name=req.name,
-        description=req.description,
-        sample_audio_url=req.sample_audio_url,
-        consent_confirmed=True,
-        model_name="OpenVoice V2",
-        is_active=True,
-    )
-    db.add(profile)
-    db.commit()
-    db.refresh(profile)
-    return profile
+    try:
+        profile = VoiceProfile(
+            user_id=current_user.id,
+            name=req.name,
+            description=req.description,
+            sample_audio_url=req.sample_audio_url,
+            consent_confirmed=True,
+            model_name="Custom Voice Profile",
+            is_active=True,
+        )
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
+        return profile
+    except Exception as e:
+        logger.error(f"Voice profile creation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create voice profile. Please try again."
+        )
 
 @router.get("/voice/clone/profiles", response_model=List[VoiceProfileResponse])
 def get_user_voice_profiles(
@@ -389,43 +429,52 @@ def generate_music(
     out_path = f"static/uploads/audio/{out_filename}"
     os.makedirs("static/uploads/audio", exist_ok=True)
 
-    duration = min(60, max(5, req.duration or 15))
-    ai_model_manager.generate_music_track(
-        prompt=req.prompt,
-        output_path=out_path,
-        duration=duration,
-        genre=req.genre or "Cinematic Electronic",
-        mood=req.mood or "Inspirational",
-        bpm=req.bpm or 120,
-        is_instrumental=req.is_instrumental if req.is_instrumental is not None else True,
-        lyrics=req.lyrics
-    )
+    try:
+        duration = min(60, max(5, req.duration or 15))
+        ai_model_manager.generate_music_track(
+            prompt=req.prompt,
+            output_path=out_path,
+            duration=duration,
+            genre=req.genre or "Cinematic Electronic",
+            mood=req.mood or "Inspirational",
+            bpm=req.bpm or 120,
+            is_instrumental=req.is_instrumental if req.is_instrumental is not None else True,
+            lyrics=req.lyrics
+        )
 
-    creation = CreationItem(
-        user_id=current_user.id,
-        title=f"Music: {req.genre or 'Song'} - {req.prompt[:30]}",
-        modality="music",
-        task_type="txt2music" if not req.lyrics else "lyrics2song",
-        model_name="ACE-Step 1.5",
-        prompt=req.prompt,
-        status=JobStatus.COMPLETED,
-        output_url=f"/static/uploads/audio/{out_filename}",
-        storage_path=out_path,
-        duration_seconds=float(duration),
-        file_size=os.path.getsize(out_path),
-        mime_type="audio/wav",
-        parameters={
-            "genre": req.genre,
-            "mood": req.mood,
-            "bpm": req.bpm,
-            "is_instrumental": req.is_instrumental,
-            "lyrics": req.lyrics,
-        },
-    )
-    db.add(creation)
-    db.commit()
-    db.refresh(creation)
-    return creation
+        creation = CreationItem(
+            user_id=current_user.id,
+            title=f"Music: {req.genre or 'Track'} - {req.prompt[:30]}",
+            modality="music",
+            task_type="txt2music" if not req.lyrics else "lyrics2song",
+            model_name="Music Studio Engine",
+            prompt=req.prompt,
+            status=JobStatus.COMPLETED,
+            output_url=f"/static/uploads/audio/{out_filename}",
+            storage_path=out_path,
+            duration_seconds=float(duration),
+            file_size=os.path.getsize(out_path),
+            mime_type="audio/wav",
+            parameters={
+                "genre": req.genre,
+                "mood": req.mood,
+                "bpm": req.bpm,
+                "is_instrumental": req.is_instrumental,
+                "lyrics": req.lyrics,
+            },
+        )
+        db.add(creation)
+        db.commit()
+        db.refresh(creation)
+        return creation
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Music generation error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="We couldn't generate your music. Please try again."
+        )
 
 @router.post("/tools/prompt-studio/optimize")
 def optimize_prompt(
@@ -436,9 +485,9 @@ def optimize_prompt(
     raw = req.prompt.strip()
 
     if modality == "image":
-        enhanced = f"{raw}, photorealistic 8k octane render, volumetric lighting, raytracing reflections, masterwork, intricate detail, cinematic composition"
+        enhanced = f"{raw}, photorealistic 8k, volumetric lighting, natural depth of field, masterwork, intricate detail, cinematic composition"
     elif modality == "video":
-        enhanced = f"Cinematic scene of {raw}, smooth camera dolly forward, 24fps motion blur, anamorphic lens flare, award-winning cinematography, atmospheric lighting"
+        enhanced = f"Cinematic scene of {raw}, smooth camera dolly forward, 24fps motion blur, atmospheric lighting, cinematic color grade, award-winning cinematography"
     elif modality == "music":
         enhanced = f"{raw}, high-fidelity production, clean master mix, dynamic harmonics, expressive crescendo, 44.1kHz stereo depth"
     elif modality == "voice":

@@ -9,7 +9,8 @@ import {
   Volume2,
   Download,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Badge } from "@/components/ui";
@@ -17,21 +18,21 @@ import { getToken } from "@/lib/api";
 
 const genres = [
   "Cinematic Electronic",
-  "Synthwave Cyberpunk",
+  "Synthwave & Cyberpunk",
   "Ambient Orchestral",
-  "Lo-Fi Hip Hop",
-  "Deep Tech House",
-  "Acoustic Indie",
-  "Future Bass",
+  "Lo-Fi Beats",
+  "Tech House & EDM",
+  "Acoustic & Indie",
+  "Epic Trailer & Hybrid",
 ];
 
 const moods = [
-  "Inspirational",
+  "Inspirational & Uplifting",
   "Epic & Tense",
-  "Mysterious",
+  "Mysterious & Atmospheric",
   "Relaxing & Chill",
-  "Euphoric",
-  "Dark & Menacing",
+  "Energetic & Driving",
+  "Dark & Dramatic",
 ];
 
 export default function MusicLabPage() {
@@ -42,6 +43,7 @@ export default function MusicLabPage() {
   const [duration, setDuration] = useState(15);
   const [isInstrumental, setIsInstrumental] = useState(true);
   const [lyrics, setLyrics] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [generating, setGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -49,7 +51,7 @@ export default function MusicLabPage() {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setErrorMessage("Please enter a track theme or musical description");
+      setErrorMessage("Please enter a track theme or musical description.");
       return;
     }
     setGenerating(true);
@@ -72,18 +74,17 @@ export default function MusicLabPage() {
           duration,
           is_instrumental: isInstrumental,
           lyrics: isInstrumental ? null : lyrics,
-          model_name: "ACE-Step 1.5",
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.detail || "Music generation failed");
+        setErrorMessage(data.detail || "We couldn't generate your music. Please try again.");
       } else {
         setResultItem(data);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error occurred");
+      setErrorMessage("We couldn't generate your music. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -96,16 +97,12 @@ export default function MusicLabPage() {
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
               <Music2 className="w-6 h-6 text-amber-400" />
-              Music Lab Studio
+              Music Lab
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Text-to-Music & Lyrics-to-Song Foundation Studio powered by ACE-Step 1.5 (MIT License)
+              Compose complete songs, create instrumentals, and synthesize music from lyrics.
             </p>
           </div>
-
-          <Badge variant="warning" className="text-xs">
-            ACE-Step 1.5 Active
-          </Badge>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -113,12 +110,12 @@ export default function MusicLabPage() {
             <Card className="p-5 bg-[#0d121c] border border-slate-800/80 space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                  Track Description & Musical Direction
+                  Track Description & Theme
                 </label>
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="e.g. Uplifting cinematic synthwave with driving bassline, retro arpeggiators, and atmospheric pads..."
+                  placeholder="e.g. Uplifting cinematic track with driving bassline, melodic arpeggios, and warm pads..."
                   rows={3}
                   className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-amber-500"
                 />
@@ -127,7 +124,7 @@ export default function MusicLabPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                    Musical Genre
+                    Genre
                   </label>
                   <select
                     value={genre}
@@ -142,7 +139,7 @@ export default function MusicLabPage() {
 
                 <div>
                   <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                    Vibe & Mood
+                    Mood & Energy
                   </label>
                   <select
                     value={mood}
@@ -156,50 +153,20 @@ export default function MusicLabPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                    Tempo: {bpm} BPM
-                  </label>
-                  <input
-                    type="range"
-                    min={70}
-                    max={160}
-                    value={bpm}
-                    onChange={(e) => setBpm(Number(e.target.value))}
-                    className="w-full accent-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                    Duration: {duration}s
-                  </label>
-                  <select
-                    value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                    className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
-                  >
-                    <option value={10}>10 Seconds (Intro / Loop)</option>
-                    <option value={15}>15 Seconds (Section)</option>
-                    <option value={30}>30 Seconds (Extended)</option>
-                  </select>
-                </div>
-              </div>
-
+              {/* Track Composition Type */}
               <div className="pt-2 border-t border-slate-800/80">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-200">
-                    Track Type
+                    Arrangement
                   </label>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => setIsInstrumental(true)}
-                      className={`px-2.5 py-1 rounded text-[11px] font-semibold border ${
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold border ${
                         isInstrumental
                           ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                          : "text-slate-400 border-slate-800"
+                          : "text-slate-400 border-slate-800 hover:text-white"
                       }`}
                     >
                       Instrumental
@@ -207,10 +174,10 @@ export default function MusicLabPage() {
                     <button
                       type="button"
                       onClick={() => setIsInstrumental(false)}
-                      className={`px-2.5 py-1 rounded text-[11px] font-semibold border ${
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold border ${
                         !isInstrumental
                           ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                          : "text-slate-400 border-slate-800"
+                          : "text-slate-400 border-slate-800 hover:text-white"
                       }`}
                     >
                       Vocal Song
@@ -221,7 +188,7 @@ export default function MusicLabPage() {
                 {!isInstrumental && (
                   <div className="mt-3">
                     <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                      Song Lyrics (Verse / Chorus)
+                      Lyrics (Verse & Chorus)
                     </label>
                     <textarea
                       value={lyrics}
@@ -234,6 +201,52 @@ export default function MusicLabPage() {
                 )}
               </div>
 
+              {/* Progressive Disclosure: Tempo & Duration */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>{showAdvanced ? "Hide Rhythm & Duration" : "Adjust Tempo & Duration"}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                </button>
+
+                {showAdvanced && (
+                  <div className="mt-3 p-3 bg-[#080b11] border border-slate-800 rounded-xl grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                        Tempo: {bpm} BPM
+                      </label>
+                      <input
+                        type="range"
+                        min={70}
+                        max={160}
+                        value={bpm}
+                        onChange={(e) => setBpm(Number(e.target.value))}
+                        className="w-full accent-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                        Track Length
+                      </label>
+                      <select
+                        value={duration}
+                        onChange={(e) => setDuration(Number(e.target.value))}
+                        className="w-full bg-[#0d121c] border border-slate-800 rounded-lg p-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                      >
+                        <option value={10}>10s (Intro / Stinger)</option>
+                        <option value={15}>15s (Standard Clip)</option>
+                        <option value={30}>30s (Extended)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Button
                 onClick={handleGenerate}
                 disabled={generating}
@@ -242,7 +255,7 @@ export default function MusicLabPage() {
                 {generating ? (
                   <span className="flex items-center gap-2">
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    Synthesizing Harmonics & Drums...
+                    Composing Track...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
@@ -259,20 +272,20 @@ export default function MusicLabPage() {
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                    Music Master Player
+                    Audio Master Player
                   </span>
                   {resultItem && (
                     <Badge variant="warning" className="text-[10px]">
-                      ACE-Step Mastered
+                      Mastered
                     </Badge>
                   )}
                 </div>
 
                 {errorMessage && (
-                  <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
+                  <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold">Music Engine Notice</p>
+                      <p className="font-semibold">Notice</p>
                       <p className="mt-0.5 text-slate-300">{errorMessage}</p>
                     </div>
                   </div>
@@ -282,8 +295,8 @@ export default function MusicLabPage() {
                   {generating ? (
                     <div className="text-center space-y-3">
                       <div className="w-16 h-16 rounded-full border-2 border-amber-500/30 border-t-amber-400 animate-spin mx-auto" />
-                      <p className="text-xs text-slate-300 font-medium">Running ACE-Step 1.5 composition passes...</p>
-                      <p className="text-[10px] text-slate-500">Calculating tempo grid, chords, pads, and bass harmonics</p>
+                      <p className="text-xs text-slate-300 font-medium">Composing harmonics, rhythm, and arrangement...</p>
+                      <p className="text-[10px] text-slate-500">Mastering stereo audio track</p>
                     </div>
                   ) : resultItem ? (
                     <div className="space-y-6 w-full max-w-md text-center">
@@ -294,18 +307,18 @@ export default function MusicLabPage() {
                       <div>
                         <h3 className="text-base font-bold text-white truncate">{resultItem.title}</h3>
                         <p className="text-xs text-amber-400/90 mt-1">
-                          {resultItem.parameters?.genre} • {resultItem.parameters?.bpm} BPM • {resultItem.duration_seconds}s
+                          {resultItem.parameters?.genre} &bull; {resultItem.parameters?.bpm} BPM &bull; {resultItem.duration_seconds}s
                         </p>
                       </div>
 
-                      <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 w-full">
+                      <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 w-full shadow-lg">
                         <audio src={resultItem.output_url} controls className="w-full" />
                       </div>
                     </div>
                   ) : (
                     <div className="text-center space-y-2 text-slate-600">
                       <Music2 className="w-12 h-12 mx-auto" />
-                      <p className="text-xs">Generated audio waveforms will load here</p>
+                      <p className="text-xs">Generated music track will play here</p>
                     </div>
                   )}
                 </div>
@@ -315,7 +328,7 @@ export default function MusicLabPage() {
                 <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
                   <div className="text-xs text-slate-400">
                     <p className="font-semibold text-slate-200">{resultItem.title}</p>
-                    <p className="text-[10px] text-slate-500">ACE-Step 1.5 44.1kHz Stereo WAV</p>
+                    <p className="text-[10px] text-slate-500">Stereo Audio WAV &bull; Mastered</p>
                   </div>
                   <a href={resultItem.output_url} download>
                     <Button size="sm" className="bg-amber-600 hover:bg-amber-500">

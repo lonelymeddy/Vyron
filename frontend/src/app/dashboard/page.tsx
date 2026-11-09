@@ -15,7 +15,7 @@ import {
   ChevronRight,
   ArrowUpRight,
   Sliders,
-  Cpu
+  Layers
 } from "lucide-react";
 
 interface CreationItem {
@@ -65,43 +65,43 @@ export default function DashboardPage() {
   const labs = [
     {
       title: "Image Lab",
-      desc: "FLUX.1 Schnell & Qwen-Image generation, Real-ESRGAN upscaling & rembg background removal.",
+      desc: "Create striking imagery, remove backgrounds, upscale resolution, and generate variations.",
       href: "/labs/image",
       icon: ImageIcon,
       color: "text-violet-400",
       bg: "bg-violet-500/10",
       border: "border-violet-500/20",
-      badge: "FLUX / Qwen / rembg",
+      badge: "Art & Photos",
     },
     {
       title: "Video Lab",
-      desc: "Wan 2.1 & LTX-Video text-to-video, image animation, and FFmpeg video transformations.",
+      desc: "Produce cinematic scenes from text, animate photos, and trim or enhance finished clips.",
       href: "/labs/video",
       icon: Video,
       color: "text-blue-400",
       bg: "bg-blue-500/10",
       border: "border-blue-500/20",
-      badge: "Wan 2.1 / LTX / FFmpeg",
+      badge: "Motion & Scenes",
     },
     {
       title: "Voice Lab",
-      desc: "Kokoro-82M text-to-speech, OpenVoice V2 authorized voice cloning & Whisper transcription.",
+      desc: "Generate lifelike speech, craft narration, transcribe spoken audio, and manage voice profiles.",
       href: "/labs/voice",
       icon: Mic,
       color: "text-emerald-400",
       bg: "bg-emerald-500/10",
       border: "border-emerald-500/20",
-      badge: "Kokoro / Whisper / OpenVoice",
+      badge: "Speech & Audio",
     },
     {
       title: "Music Lab",
-      desc: "ACE-Step 1.5 music & song generation, vocal & instrumental synthesis with waveform player.",
+      desc: "Compose original songs and instrumentals, generate music from lyrics, and explore musical styles.",
       href: "/labs/music",
       icon: Music2,
       color: "text-amber-400",
       bg: "bg-amber-500/10",
       border: "border-amber-500/20",
-      badge: "ACE-Step 1.5",
+      badge: "Song Creation",
     },
   ];
 
@@ -116,22 +116,22 @@ export default function DashboardPage() {
               YOUR CREATIVE AI LABORATORY &bull; VYRON AI LABS
             </Badge>
             <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-              Multimodal Neural AI Generation Studio
+              Create Across Every Creative Dimension
             </h1>
             <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
-              Create high-fidelity images, cinematic videos, expressive speech synthesis, and full-length music compositions through one unified AI workspace.
+              Generate commercial-grade images, cinematic video shots, natural voice narration, and original music tracks in one seamless studio.
             </p>
             <div className="pt-2 flex flex-wrap gap-3">
               <Link href="/labs/image">
                 <Button size="md">
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Launch Image Lab
+                  Launch Image Studio
                 </Button>
               </Link>
               <Link href="/tools">
                 <Button variant="outline" size="md">
                   <Sliders className="w-4 h-4 mr-2" />
-                  AI Creative Studio
+                  Prompt Studio & Assistant
                 </Button>
               </Link>
             </div>
@@ -152,11 +152,11 @@ export default function DashboardPage() {
 
           <Card className="flex items-center gap-4 p-4">
             <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
-              <Cpu className="w-6 h-6" />
+              <Layers className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-medium">Active AI Models</p>
-              <p className="text-2xl font-bold text-white">12 Models</p>
+              <p className="text-xs text-slate-400 font-medium">Creative Studios</p>
+              <p className="text-2xl font-bold text-white">4 Studios</p>
             </div>
           </Card>
 
@@ -165,7 +165,7 @@ export default function DashboardPage() {
               <Coins className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-medium">Available Credits</p>
+              <p className="text-xs text-slate-400 font-medium">Creation Credits</p>
               <p className="text-2xl font-bold text-amber-400">{credits} CR</p>
             </div>
           </Card>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-xs text-slate-400 font-medium">Platform Status</p>
-              <p className="text-xs font-bold text-emerald-400">All Labs Ready</p>
+              <p className="text-xs font-bold text-emerald-400">All Systems Operational</p>
             </div>
           </Card>
         </div>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-violet-400" />
-            Primary Creative Workspaces
+            Creative Workspaces
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {labs.map((lab) => {
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <div className="pt-4 flex items-center justify-between text-xs font-medium text-violet-400">
-                      <span>Launch Studio</span>
+                      <span>Enter Studio</span>
                       <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </div>
                   </Card>
@@ -244,7 +244,7 @@ export default function DashboardPage() {
               <Sparkles className="w-10 h-10 text-slate-600 mx-auto mb-3" />
               <h3 className="text-sm font-semibold text-slate-200">No creations saved yet</h3>
               <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-4">
-                Explore the Image, Video, Voice, and Music labs to begin generating AI content.
+                Explore Image, Video, Voice, and Music labs to begin generating AI content.
               </p>
               <Link href="/labs/image">
                 <Button size="sm">
