@@ -10,7 +10,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Zap,
-  Cpu
+  Palette
 } from "lucide-react";
 import { Button, Card, Badge, Logo } from "@/components/ui";
 
@@ -50,15 +50,15 @@ export default function LandingPage() {
       <section className="py-20 px-6 max-w-6xl mx-auto text-center flex flex-col items-center">
         <Badge variant="purple" className="mb-6 py-1 px-3.5 text-xs font-semibold tracking-wide">
           <Sparkles className="w-3.5 h-3.5 mr-1.5 text-violet-400" />
-          YOUR CREATIVE AI LABORATORY &bull; MULTIMODAL PLATFORM
+          YOUR CREATIVE AI LABORATORY &bull; ALL-IN-ONE STUDIO
         </Badge>
 
         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight max-w-4xl leading-tight text-slate-100">
-          One Unified Platform for <span className="gradient-text">Images, Videos, Voice & Music</span>
+          Professional AI Creation for <span className="gradient-text">Images, Videos, Voice & Music</span>
         </h1>
 
         <p className="mt-6 text-slate-400 text-base md:text-lg max-w-2xl leading-relaxed">
-          VYRON AI LABS gives creators direct access to state-of-the-art open AI models across four dedicated creative studios, powered by real neural generation.
+          VYRON AI LABS gives creators an intuitive, high-performance platform to generate captivating visual artwork, cinematic video sequences, expressive voiceovers, and studio-grade music.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -82,7 +82,7 @@ export default function LandingPage() {
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-extrabold text-white">The Four Creative AI Studios</h2>
           <p className="text-slate-400 text-sm mt-2 max-w-xl mx-auto">
-            Engineered around purpose-built open-source foundation models
+            Everything you need to turn creative ideas into finished commercial productions
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-base font-bold text-slate-100 group-hover:text-violet-300 transition-colors">Image Lab</h3>
                 <p className="text-slate-400 text-xs leading-relaxed mt-1">
-                  FLUX.1 Schnell & Qwen-Image generation, Qwen-Image-Edit, Real-ESRGAN upscaling, and rembg background removal.
+                  Create original digital artwork, enhance resolutions, remove backgrounds, and generate custom image variations with precision.
                 </p>
               </div>
               <div className="text-xs font-semibold text-violet-400 pt-2 flex items-center">
@@ -112,7 +112,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-base font-bold text-slate-100 group-hover:text-blue-300 transition-colors">Video Lab</h3>
                 <p className="text-slate-400 text-xs leading-relaxed mt-1">
-                  Wan 2.1, Wan 2.2 & LTX-Video text-to-video, image animation, and FFmpeg video transformations.
+                  Generate cinematic video sequences from descriptions, animate still imagery, and trim or enhance video assets effortlessly.
                 </p>
               </div>
               <div className="text-xs font-semibold text-blue-400 pt-2 flex items-center">
@@ -129,7 +129,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-base font-bold text-slate-100 group-hover:text-emerald-300 transition-colors">Voice Lab</h3>
                 <p className="text-slate-400 text-xs leading-relaxed mt-1">
-                  Kokoro-82M text-to-speech, OpenVoice V2 authorized voice cloning, and OpenAI Whisper audio transcription.
+                  Synthesize lifelike voice narration, transcribe spoken audio into timestamped subtitles, and manage authorized custom voice profiles.
                 </p>
               </div>
               <div className="text-xs font-semibold text-emerald-400 pt-2 flex items-center">
@@ -146,7 +146,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-base font-bold text-slate-100 group-hover:text-amber-300 transition-colors">Music Lab</h3>
                 <p className="text-slate-400 text-xs leading-relaxed mt-1">
-                  ACE-Step 1.5 music creation, full vocal and instrumental generation, lyrics integration, and audio synthesis.
+                  Compose complete musical tracks, generate instrumentals across genres and tempos, and synthesize songs directly from lyrics.
                 </p>
               </div>
               <div className="text-xs font-semibold text-amber-400 pt-2 flex items-center">
@@ -157,30 +157,30 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ARCHITECTURE HIGHLIGHTS */}
+      {/* CORE CAPABILITIES */}
       <section className="py-12 px-6 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-slate-400 text-xs">
           <div className="p-4 rounded-xl bg-[#0c1017] border border-slate-800/80 flex items-start gap-3">
             <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-slate-200 text-xs mb-1">Ethical AI & Authorized Voice</h4>
-              <p>Cloning requires verified consent. User creations and voice profiles are isolated with secure file permissions.</p>
+              <h4 className="font-bold text-slate-200 text-xs mb-1">Ethical Creation & Data Safety</h4>
+              <p>Strict privacy safeguards ensure your uploaded assets and finished media remain private and protected under your account.</p>
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-[#0c1017] border border-slate-800/80 flex items-start gap-3">
             <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-slate-200 text-xs mb-1">Real Background Workers</h4>
-              <p>Heavy models execute asynchronously through managed workers with actual progress tracking and persistence.</p>
+              <h4 className="font-bold text-slate-200 text-xs mb-1">High-Speed Creation</h4>
+              <p>Instant audio synthesis, parallel image rendering, and responsive video processing deliver fast turnaround times.</p>
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-[#0c1017] border border-slate-800/80 flex items-start gap-3">
-            <Cpu className="w-5 h-5 text-violet-400 shrink-0 mt-0.5" />
+            <Palette className="w-5 h-5 text-violet-400 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-slate-200 text-xs mb-1">Central AI Model Registry</h4>
-              <p>Inspect model status, verify open Apache 2.0 / MIT licenses, checkpoint weights, and hardware compatibility.</p>
+              <h4 className="font-bold text-slate-200 text-xs mb-1">Unified Creative Library</h4>
+              <p>All your generated images, video scenes, narration clips, and music stems are organized in one central creation hub.</p>
             </div>
           </div>
         </div>

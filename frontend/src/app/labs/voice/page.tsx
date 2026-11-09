@@ -11,7 +11,9 @@ import {
   Upload,
   CheckCircle2,
   ShieldCheck,
-  Trash2
+  Trash2,
+  Sliders,
+  ChevronDown
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Badge } from "@/components/ui";
@@ -24,6 +26,7 @@ export default function VoiceLabPage() {
   const [voiceId, setVoiceId] = useState("af_sarah");
   const [speed, setSpeed] = useState(1.0);
   const [voices, setVoices] = useState<any[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [transcribeAudioFile, setTranscribeAudioFile] = useState<File | null>(null);
   const [transcribeAudioUrl, setTranscribeAudioUrl] = useState("");
@@ -60,7 +63,7 @@ export default function VoiceLabPage() {
           }
         }
       } catch (err) {
-        console.error("Failed to load voice dependencies", err);
+        console.error("Failed to load voices", err);
       }
     }
     loadData();
@@ -87,15 +90,17 @@ export default function VoiceLabPage() {
         const data = await res.json();
         if (target === "transcribe") setTranscribeAudioUrl(data.url);
         else setCloneAudioUrl(data.url);
+      } else {
+        setErrorMessage("Audio upload failed. Please try a different audio file.");
       }
     } catch (err) {
-      console.error("Audio upload failed", err);
+      setErrorMessage("Could not upload audio. Please check your network connection.");
     }
   };
 
   const handleGenerateTTS = async () => {
     if (!text.trim()) {
-      setErrorMessage("Please enter text for speech generation");
+      setErrorMessage("Please enter text for voice narration.");
       return;
     }
     setProcessing(true);
@@ -119,12 +124,12 @@ export default function VoiceLabPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.detail || "Voice synthesis failed");
+        setErrorMessage(data.detail || "Voice narration is temporarily unavailable. Please try again.");
       } else {
         setResultItem(data);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error occurred");
+      setErrorMessage("Voice narration is temporarily unavailable. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -132,7 +137,7 @@ export default function VoiceLabPage() {
 
   const handleTranscribe = async () => {
     if (!transcribeAudioUrl) {
-      setErrorMessage("Please upload an audio file to transcribe");
+      setErrorMessage("Please upload an audio file to transcribe.");
       return;
     }
     setProcessing(true);
@@ -152,12 +157,12 @@ export default function VoiceLabPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.detail || "Transcription failed");
+        setErrorMessage(data.detail || "Audio transcription could not be completed. Please try again.");
       } else {
         setTranscriptionResult(data);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error occurred");
+      setErrorMessage("Audio transcription could not be completed. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -165,11 +170,11 @@ export default function VoiceLabPage() {
 
   const handleCreateProfile = async () => {
     if (!cloneName || !cloneAudioUrl) {
-      setErrorMessage("Please specify a profile name and voice reference sample");
+      setErrorMessage("Please specify a profile name and voice reference sample.");
       return;
     }
     if (!consentConfirmed) {
-      setErrorMessage("You must confirm voice sample ownership and explicit permission");
+      setErrorMessage("You must confirm voice sample ownership or explicit written authorization.");
       return;
     }
 
@@ -194,7 +199,7 @@ export default function VoiceLabPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.detail || "Failed to create voice profile");
+        setErrorMessage(data.detail || "Failed to create voice profile. Please try again.");
       } else {
         setSavedProfiles((prev) => [data, ...prev]);
         setCloneName("");
@@ -204,7 +209,7 @@ export default function VoiceLabPage() {
         setConsentConfirmed(false);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error occurred");
+      setErrorMessage("Failed to create voice profile. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -232,43 +237,43 @@ export default function VoiceLabPage() {
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
               <Mic className="w-6 h-6 text-emerald-400" />
-              Voice Lab Studio
+              Voice Lab
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Natural Text-to-Speech (Kokoro-82M), Timestamped Whisper Transcription & Authorized OpenVoice V2 Cloning
+              Generate lifelike voice narration, transcribe spoken audio, and manage authorized voice profiles.
             </p>
           </div>
 
           <div className="flex bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
             <button
-              onClick={() => setActiveTab("tts")}
+              onClick={() => { setActiveTab("tts"); setErrorMessage(""); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "tts"
                   ? "bg-emerald-600 text-white shadow"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              Text-to-Speech
+              Voice Narration
             </button>
             <button
-              onClick={() => setActiveTab("transcribe")}
+              onClick={() => { setActiveTab("transcribe"); setErrorMessage(""); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "transcribe"
                   ? "bg-emerald-600 text-white shadow"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              Whisper Transcription
+              Transcribe Audio
             </button>
             <button
-              onClick={() => setActiveTab("cloning")}
+              onClick={() => { setActiveTab("cloning"); setErrorMessage(""); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "cloning"
                   ? "bg-emerald-600 text-white shadow"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              Authorized Voice Profiles
+              Custom Voice Profiles
             </button>
           </div>
         </div>
@@ -285,7 +290,7 @@ export default function VoiceLabPage() {
                     <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
-                      placeholder="Type or paste narration, dialogue, or announcements here..."
+                      placeholder="Type or paste narration, dialogue, or script here..."
                       rows={5}
                       className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
                     />
@@ -293,34 +298,52 @@ export default function VoiceLabPage() {
 
                   <div>
                     <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                      Kokoro Voice Actor
+                      Voice Talent
                     </label>
                     <select
                       value={voiceId}
                       onChange={(e) => setVoiceId(e.target.value)}
                       className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
                     >
-                      {voices.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name} ({v.gender})
-                        </option>
-                      ))}
+                      {voices.length > 0 ? (
+                        voices.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.name} &bull; {v.style || v.gender}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="af_sarah">Sarah &bull; Clear & Natural</option>
+                      )}
                     </select>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                      Speaking Speed: {speed.toFixed(1)}x
-                    </label>
-                    <input
-                      type="range"
-                      min={0.7}
-                      max={1.5}
-                      step={0.1}
-                      value={speed}
-                      onChange={(e) => setSpeed(Number(e.target.value))}
-                      className="w-full accent-emerald-500"
-                    />
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      <Sliders className="w-3.5 h-3.5" />
+                      <span>{showAdvanced ? "Hide Speech Controls" : "Adjust Speech Speed"}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {showAdvanced && (
+                      <div className="mt-3 p-3 bg-[#080b11] border border-slate-800 rounded-xl">
+                        <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                          Speaking Rate: {speed.toFixed(1)}x
+                        </label>
+                        <input
+                          type="range"
+                          min={0.7}
+                          max={1.4}
+                          step={0.1}
+                          value={speed}
+                          onChange={(e) => setSpeed(Number(e.target.value))}
+                          className="w-full accent-emerald-500"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <Button
@@ -331,7 +354,7 @@ export default function VoiceLabPage() {
                     {processing ? (
                       <span className="flex items-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        Generating Audio Stream...
+                        Generating Speech...
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
@@ -350,7 +373,7 @@ export default function VoiceLabPage() {
                     <label className="flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-xl cursor-pointer hover:border-emerald-500 bg-[#080b11]">
                       <Upload className="w-5 h-5 text-emerald-400 mb-1" />
                       <span className="text-xs text-slate-300">
-                        {transcribeAudioFile ? transcribeAudioFile.name : "Choose audio (WAV, MP3, M4A)"}
+                        {transcribeAudioFile ? transcribeAudioFile.name : "Choose audio file (WAV, MP3, M4A)"}
                       </span>
                       <input
                         type="file"
@@ -361,7 +384,7 @@ export default function VoiceLabPage() {
                     </label>
                     {transcribeAudioUrl && (
                       <div className="mt-2 text-[10px] text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Audio loaded ready for Whisper
+                        <CheckCircle2 className="w-3 h-3" /> Audio file ready for transcription
                       </div>
                     )}
                   </div>
@@ -374,12 +397,12 @@ export default function VoiceLabPage() {
                     {processing ? (
                       <span className="flex items-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        Running Whisper Transcription...
+                        Transcribing Audio...
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        Extract Subtitles & Timestamps
+                        Extract Subtitles & Text
                       </span>
                     )}
                   </Button>
@@ -394,7 +417,7 @@ export default function VoiceLabPage() {
                       type="text"
                       value={cloneName}
                       onChange={(e) => setCloneName(e.target.value)}
-                      placeholder="e.g. My Authorized Narrative Voice"
+                      placeholder="e.g. My Narrative Voice"
                       className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -406,7 +429,7 @@ export default function VoiceLabPage() {
                     <label className="flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-xl cursor-pointer hover:border-emerald-500 bg-[#080b11]">
                       <Upload className="w-5 h-5 text-emerald-400 mb-1" />
                       <span className="text-xs text-slate-300">
-                        {cloneAudioFile ? cloneAudioFile.name : "Choose clean voice sample audio"}
+                        {cloneAudioFile ? cloneAudioFile.name : "Choose a clean 10-30s voice sample"}
                       </span>
                       <input
                         type="file"
@@ -417,7 +440,7 @@ export default function VoiceLabPage() {
                     </label>
                     {cloneAudioUrl && (
                       <div className="mt-2 text-[10px] text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Voice reference uploaded
+                        <CheckCircle2 className="w-3 h-3" /> Reference sample uploaded
                       </div>
                     )}
                   </div>
@@ -432,7 +455,7 @@ export default function VoiceLabPage() {
                         className="mt-0.5 accent-emerald-500"
                       />
                       <label htmlFor="consent" className="text-[11px] text-slate-300 leading-tight">
-                        I confirm that I own this voice or possess explicit written permission to create this profile. I will not use this tool for unauthorized impersonation.
+                        I confirm that I own this voice or possess explicit written authorization to create this voice profile. I will not use this feature for unauthorized impersonation.
                       </label>
                     </div>
                   </div>
@@ -445,12 +468,12 @@ export default function VoiceLabPage() {
                     {processing ? (
                       <span className="flex items-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        Extracting Voice Tone Color...
+                        Creating Voice Profile...
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
                         <ShieldCheck className="w-4 h-4" />
-                        Create Authorized Voice Profile
+                        Create Voice Profile
                       </span>
                     )}
                   </Button>
@@ -464,20 +487,20 @@ export default function VoiceLabPage() {
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                    Voice Laboratory Monitor
+                    Voice Studio Player
                   </span>
                   {(resultItem || transcriptionResult) && (
                     <Badge variant="success" className="text-[10px]">
-                      Success
+                      Ready
                     </Badge>
                   )}
                 </div>
 
                 {errorMessage && (
-                  <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
+                  <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold">Voice Engine Notice</p>
+                      <p className="font-semibold">Notice</p>
                       <p className="mt-0.5 text-slate-300">{errorMessage}</p>
                     </div>
                   </div>
@@ -487,7 +510,7 @@ export default function VoiceLabPage() {
                   {processing ? (
                     <div className="text-center space-y-2">
                       <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin mx-auto" />
-                      <p className="text-xs text-slate-400">Synthesizing audio waves...</p>
+                      <p className="text-xs text-slate-400">Synthesizing audio narration...</p>
                     </div>
                   ) : activeTab === "transcribe" && transcriptionResult ? (
                     <div className="space-y-4 max-h-[360px] overflow-y-auto pr-2">
@@ -520,10 +543,10 @@ export default function VoiceLabPage() {
                   ) : activeTab === "cloning" ? (
                     <div className="space-y-3">
                       <span className="text-xs font-bold text-slate-200 block">
-                        Saved Authorized Voice Profiles ({savedProfiles.length})
+                        Saved Voice Profiles ({savedProfiles.length})
                       </span>
                       {savedProfiles.length === 0 ? (
-                        <p className="text-xs text-slate-500">No authorized voice profiles registered yet.</p>
+                        <p className="text-xs text-slate-500">No custom voice profiles created yet.</p>
                       ) : (
                         <div className="space-y-2 max-h-[300px] overflow-y-auto">
                           {savedProfiles.map((p) => (
@@ -534,7 +557,7 @@ export default function VoiceLabPage() {
                               <div>
                                 <h4 className="text-xs font-bold text-slate-200">{p.name}</h4>
                                 <span className="text-[10px] text-emerald-400 flex items-center gap-1 mt-0.5">
-                                  <ShieldCheck className="w-3 h-3" /> Consent Confirmed • {p.model_name}
+                                  <ShieldCheck className="w-3 h-3" /> Verified & Active
                                 </span>
                               </div>
                               <button
@@ -550,13 +573,13 @@ export default function VoiceLabPage() {
                     </div>
                   ) : resultItem ? (
                     <div className="space-y-4 text-center">
-                      <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto">
+                      <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-lg">
                         <Volume2 className="w-8 h-8" />
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-slate-200">{resultItem.title}</h4>
                         <p className="text-xs text-slate-400 mt-1">
-                          Duration: {resultItem.duration_seconds}s • Model: {resultItem.model_name}
+                          Duration: {resultItem.duration_seconds}s
                         </p>
                       </div>
                       <div className="pt-2 flex justify-center">
@@ -566,7 +589,7 @@ export default function VoiceLabPage() {
                   ) : (
                     <div className="text-center space-y-2 text-slate-600">
                       <Volume2 className="w-12 h-12 mx-auto" />
-                      <p className="text-xs">Audio output or transcription will preview here</p>
+                      <p className="text-xs">Generated voice audio will play here</p>
                     </div>
                   )}
                 </div>
@@ -576,7 +599,7 @@ export default function VoiceLabPage() {
                 <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
                   <div className="text-xs text-slate-400">
                     <p className="font-semibold text-slate-200">{resultItem.title}</p>
-                    <p className="text-[10px] text-slate-500">Kokoro-82M High Fidelity WAV</p>
+                    <p className="text-[10px] text-slate-500">Format: Audio WAV</p>
                   </div>
                   <a href={resultItem.output_url} download>
                     <Button size="sm">

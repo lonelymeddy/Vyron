@@ -18,17 +18,17 @@ import {
   Menu,
   X,
   User as UserIcon,
-  Cpu
+  Layers
 } from "lucide-react";
 import { cn, Button, Logo } from "@/components/ui";
 import { apiClient, getToken, User } from "@/lib/api";
 
 const navItems = [
   { name: "Home", href: "/dashboard", icon: Compass },
-  { name: "Image Lab", href: "/labs/image", icon: ImageIcon, highlight: true, tag: "FLUX / Qwen" },
-  { name: "Video Lab", href: "/labs/video", icon: VideoIcon, highlight: true, tag: "Wan / LTX" },
-  { name: "Voice Lab", href: "/labs/voice", icon: Mic, highlight: true, tag: "Kokoro" },
-  { name: "Music Lab", href: "/labs/music", icon: Music2, highlight: true, tag: "ACE-Step" },
+  { name: "Image Lab", href: "/labs/image", icon: ImageIcon, highlight: true },
+  { name: "Video Lab", href: "/labs/video", icon: VideoIcon, highlight: true },
+  { name: "Voice Lab", href: "/labs/voice", icon: Mic, highlight: true },
+  { name: "Music Lab", href: "/labs/music", icon: Music2, highlight: true },
   { name: "My Creations", href: "/creations", icon: FolderHeart },
   { name: "AI Tools", href: "/tools", icon: Wand2 },
   { name: "Settings", href: "/settings", icon: Settings },
@@ -57,11 +57,6 @@ function NavLinks({ onItemClick }: { onItemClick?: () => void }) {
           >
             <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-violet-400" : "text-slate-400")} />
             <span className="truncate">{item.name}</span>
-            {item.tag && (
-              <span className="ml-auto text-[9px] font-bold bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded border border-violet-500/30 shrink-0">
-                {item.tag}
-              </span>
-            )}
           </Link>
         );
       })}
@@ -140,7 +135,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        <Suspense fallback={<div className="p-4 text-xs text-slate-500">Loading labs...</div>}>
+        <Suspense fallback={<div className="p-4 text-xs text-slate-500">Loading creative studios...</div>}>
           <NavLinks />
         </Suspense>
 
@@ -155,7 +150,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Coins className="w-4 h-4 text-amber-400" />
-              <span className="text-xs text-slate-300 font-medium">Lab Credits</span>
+              <span className="text-xs text-slate-300 font-medium">Creation Credits</span>
             </div>
             <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">
               {credits} CR
@@ -165,7 +160,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="bg-gradient-to-r from-amber-500 to-violet-500 h-full transition-all duration-300" style={{ width: `${Math.min(100, Math.max(10, credits))}%` }} />
           </div>
           <p className="text-[10px] text-slate-400 leading-normal">
-            Multi-modal studio ready. Image, Video, Voice & Music engines loaded.
+            Your Creative Studio is active. Image, Video, Voice & Music creations ready.
           </p>
         </div>
 
@@ -235,15 +230,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         <header className="hidden md:flex h-16 border-b border-slate-800/80 px-6 items-center justify-between bg-[#07090e]/90 backdrop-blur sticky top-0 z-10">
           <div className="flex items-center gap-2.5">
-            <Cpu className="w-4 h-4 text-violet-400" />
+            <Layers className="w-4 h-4 text-violet-400" />
             <span className="text-xs text-slate-300 font-semibold uppercase tracking-wider">
-              VYRON AI LABS — Multi-Modal Neural Workspace
+              VYRON AI LABS — Creative AI Studio
             </span>
           </div>
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1.5" />
-              Labs Operational
+              Studios Ready
             </span>
             <Link href="/labs/image">
               <Button size="sm">

@@ -10,19 +10,30 @@ import {
   AlertCircle,
   CheckCircle2,
   RefreshCw,
-  Upload
+  Upload,
+  ChevronDown,
+  Wand2,
+  Sliders
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Badge } from "@/components/ui";
 import { getToken } from "@/lib/api";
 
+const creativeStyles = [
+  { id: "photorealistic", label: "Photorealistic", description: "Ultra-high detail with natural lighting and realistic textures" },
+  { id: "cinematic", label: "Cinematic Film", description: "Dramatic 35mm film color grading with atmospheric depth" },
+  { id: "digital_art", label: "Digital Artwork", description: "Vibrant conceptual illustration and modern digital painting" },
+  { id: "fantasy", label: "Fantasy & Sci-Fi", description: "Mythical, otherworldly landscapes and futuristic aesthetics" },
+];
+
 export default function ImageLabPage() {
   const [activeTab, setActiveTab] = useState<"generate" | "edit">("generate");
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
-  const [selectedModel, setSelectedModel] = useState("FLUX.1 Schnell");
+  const [selectedStyle, setSelectedStyle] = useState("photorealistic");
   const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [steps, setSteps] = useState(4);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [qualityLevel, setQualityLevel] = useState(4);
   const [seed, setSeed] = useState<number | "">("");
 
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
@@ -53,15 +64,17 @@ export default function ImageLabPage() {
       if (res.ok) {
         const data = await res.json();
         setEditImageUrl(data.url);
+      } else {
+        setErrorMessage("Image upload failed. Please try a different image.");
       }
     } catch (err) {
-      console.error("Upload failed", err);
+      setErrorMessage("Could not upload image. Please check your network connection.");
     }
   };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setErrorMessage("Please enter an image prompt");
+      setErrorMessage("Please enter an image description to generate.");
       return;
     }
     setGenerating(true);
@@ -79,21 +92,21 @@ export default function ImageLabPage() {
         body: JSON.stringify({
           prompt,
           negative_prompt: negativePrompt,
-          model_name: selectedModel,
+          model_name: selectedStyle,
           aspect_ratio: aspectRatio,
-          steps,
+          steps: qualityLevel,
           seed: seed === "" ? null : Number(seed),
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.detail || "Image generation failed");
+        setErrorMessage(data.detail || "Image generation is temporarily unavailable. Please try again.");
       } else {
         setResultItem(data);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error occurred");
+      setErrorMessage("Image generation is temporarily unavailable. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -101,7 +114,7 @@ export default function ImageLabPage() {
 
   const handleEdit = async () => {
     if (!editImageUrl) {
-      setErrorMessage("Please upload an image to edit");
+      setErrorMessage("Please upload an image to edit.");
       return;
     }
     setGenerating(true);
@@ -126,12 +139,12 @@ export default function ImageLabPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.detail || "Image edit failed");
+        setErrorMessage(data.detail || "Image editing could not be completed. Please try again.");
       } else {
         setResultItem(data);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error occurred");
+      setErrorMessage("Image editing could not be completed. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -144,33 +157,33 @@ export default function ImageLabPage() {
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
               <ImageIcon className="w-6 h-6 text-violet-400" />
-              Image Lab Studio
+              Image Lab
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Text-to-Image Generation, Instruction Editing, Background Removal (rembg) & Real-ESRGAN Upscaling
+              Create striking imagery, remove backgrounds, enhance resolution, and generate variations.
             </p>
           </div>
 
           <div className="flex bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
             <button
-              onClick={() => setActiveTab("generate")}
+              onClick={() => { setActiveTab("generate"); setErrorMessage(""); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "generate"
                   ? "bg-violet-600 text-white shadow"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              Text-to-Image
+              Create Images
             </button>
             <button
-              onClick={() => setActiveTab("edit")}
+              onClick={() => { setActiveTab("edit"); setErrorMessage(""); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "edit"
                   ? "bg-violet-600 text-white shadow"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              Image Editing & Tools
+              Edit & Enhance
             </button>
           </div>
         </div>
@@ -182,42 +195,30 @@ export default function ImageLabPage() {
                 <>
                   <div>
                     <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                      Prompt Description
+                      Prompt
                     </label>
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="e.g. A hyper-detailed glowing obsidian monolith rising from misty water at dusk, cinematic 8k render..."
+                      placeholder="Describe the image you want to create in detail..."
                       rows={4}
                       className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                      Negative Prompt (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={negativePrompt}
-                      onChange={(e) => setNegativePrompt(e.target.value)}
-                      placeholder="blurry, distorted, artifacts, lowres"
-                      className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                        Foundation Model
+                        Creative Style
                       </label>
                       <select
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
+                        value={selectedStyle}
+                        onChange={(e) => setSelectedStyle(e.target.value)}
                         className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
                       >
-                        <option value="FLUX.1 Schnell">FLUX.1 Schnell (Apache 2.0)</option>
-                        <option value="Qwen-Image">Qwen-Image (Apache 2.0)</option>
+                        {creativeStyles.map((s) => (
+                          <option key={s.id} value={s.id}>{s.label}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -230,40 +231,71 @@ export default function ImageLabPage() {
                         onChange={(e) => setAspectRatio(e.target.value)}
                         className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
                       >
-                        <option value="1:1">1:1 Square (1024x1024)</option>
-                        <option value="16:9">16:9 Cinematic (1280x720)</option>
-                        <option value="9:16">9:16 Portrait (720x1280)</option>
+                        <option value="1:1">1:1 Square</option>
+                        <option value="16:9">16:9 Widescreen</option>
+                        <option value="9:16">9:16 Portrait</option>
                         <option value="4:3">4:3 Standard</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                        Steps: {steps}
-                      </label>
-                      <input
-                        type="range"
-                        min={1}
-                        max={12}
-                        value={steps}
-                        onChange={(e) => setSteps(Number(e.target.value))}
-                        className="w-full accent-violet-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                        Seed
-                      </label>
-                      <input
-                        type="number"
-                        value={seed}
-                        onChange={(e) => setSeed(e.target.value === "" ? "" : Number(e.target.value))}
-                        placeholder="Random"
-                        className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
-                      />
-                    </div>
+                  {/* Progressive Disclosure: Advanced Creative Controls */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      <Sliders className="w-3.5 h-3.5" />
+                      <span>{showAdvanced ? "Hide Advanced Settings" : "Show Advanced Settings"}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {showAdvanced && (
+                      <div className="mt-3 p-3 bg-[#080b11] border border-slate-800 rounded-xl space-y-3">
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                            Avoid in Image (Negative Elements)
+                          </label>
+                          <input
+                            type="text"
+                            value={negativePrompt}
+                            onChange={(e) => setNegativePrompt(e.target.value)}
+                            placeholder="e.g. blurry, oversaturated, deformed"
+                            className="w-full bg-[#0d121c] border border-slate-800 rounded-lg p-2 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                              Detail Level: {qualityLevel}
+                            </label>
+                            <input
+                              type="range"
+                              min={2}
+                              max={8}
+                              value={qualityLevel}
+                              onChange={(e) => setQualityLevel(Number(e.target.value))}
+                              className="w-full accent-violet-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                              Creative Seed
+                            </label>
+                            <input
+                              type="number"
+                              value={seed}
+                              onChange={(e) => setSeed(e.target.value === "" ? "" : Number(e.target.value))}
+                              placeholder="Random"
+                              className="w-full bg-[#0d121c] border border-slate-800 rounded-lg p-2 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <Button
@@ -274,7 +306,7 @@ export default function ImageLabPage() {
                     {generating ? (
                       <span className="flex items-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        Generating Canvas...
+                        Generating Artwork...
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
@@ -293,7 +325,7 @@ export default function ImageLabPage() {
                     <label className="flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-xl cursor-pointer hover:border-violet-500 bg-[#080b11]">
                       <Upload className="w-5 h-5 text-violet-400 mb-1" />
                       <span className="text-xs text-slate-300">
-                        {editImageFile ? editImageFile.name : "Choose an image file"}
+                        {editImageFile ? editImageFile.name : "Choose an image file (PNG, JPG, WEBP)"}
                       </span>
                       <input
                         type="file"
@@ -304,14 +336,14 @@ export default function ImageLabPage() {
                     </label>
                     {editImageUrl && (
                       <div className="mt-2 text-[10px] text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Image uploaded successfully
+                        <CheckCircle2 className="w-3 h-3" /> Image uploaded and ready
                       </div>
                     )}
                   </div>
 
                   <div>
                     <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                      Editing Tool
+                      Creative Tool
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -323,7 +355,7 @@ export default function ImageLabPage() {
                         }`}
                       >
                         <Scissors className="w-3.5 h-3.5 text-violet-400" />
-                        Background Cutout
+                        Remove Background
                       </button>
 
                       <button
@@ -335,7 +367,7 @@ export default function ImageLabPage() {
                         }`}
                       >
                         <Maximize2 className="w-3.5 h-3.5 text-blue-400" />
-                        Real-ESRGAN 2x
+                        Upscale & Restore
                       </button>
                     </div>
                   </div>
@@ -343,28 +375,28 @@ export default function ImageLabPage() {
                   {editOperation === "upscale" && (
                     <div>
                       <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                        Super-Resolution Factor
+                        Enhancement Scale
                       </label>
                       <select
                         value={scaleFactor}
                         onChange={(e) => setScaleFactor(Number(e.target.value))}
                         className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
                       >
-                        <option value={2}>2x Upscale & Enhance</option>
-                        <option value={4}>4x Deep Detail Reconstruction</option>
+                        <option value={2}>2x High Clarity</option>
+                        <option value={4}>4x Ultra High-Resolution</option>
                       </select>
                     </div>
                   )}
 
                   <div>
                     <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                      Editing Prompt (Optional for Cutout/Upscale)
+                      Modification Instructions (Optional)
                     </label>
                     <input
                       type="text"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="e.g. Remove background subject clean cutout"
+                      placeholder="Optional styling instructions..."
                       className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
                     />
                   </div>
@@ -381,7 +413,7 @@ export default function ImageLabPage() {
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
+                        <Wand2 className="w-4 h-4" />
                         Apply Tool
                       </span>
                     )}
@@ -396,20 +428,20 @@ export default function ImageLabPage() {
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                    Live Generation Canvas
+                    Image Preview
                   </span>
                   {resultItem && (
                     <Badge variant="success" className="text-[10px]">
-                      Completed
+                      Ready
                     </Badge>
                   )}
                 </div>
 
                 {errorMessage && (
-                  <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
+                  <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold">Inference Status Note</p>
+                      <p className="font-semibold">Notice</p>
                       <p className="mt-0.5 text-slate-300">{errorMessage}</p>
                     </div>
                   </div>
@@ -419,18 +451,18 @@ export default function ImageLabPage() {
                   {generating ? (
                     <div className="text-center space-y-2">
                       <RefreshCw className="w-8 h-8 text-violet-400 animate-spin mx-auto" />
-                      <p className="text-xs text-slate-400">Executing neural model passes...</p>
+                      <p className="text-xs text-slate-400">Rendering high-resolution artwork...</p>
                     </div>
                   ) : resultItem ? (
                     <img
                       src={resultItem.output_url}
                       alt={resultItem.title}
-                      className="max-h-[380px] object-contain rounded-lg"
+                      className="max-h-[380px] object-contain rounded-lg shadow-xl"
                     />
                   ) : (
                     <div className="text-center space-y-2 text-slate-600">
                       <ImageIcon className="w-12 h-12 mx-auto" />
-                      <p className="text-xs">Generated or edited image will preview here</p>
+                      <p className="text-xs">Generated or edited artwork will appear here</p>
                     </div>
                   )}
                 </div>
@@ -440,9 +472,7 @@ export default function ImageLabPage() {
                 <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between">
                   <div className="text-xs text-slate-400 truncate max-w-sm">
                     <p className="font-semibold text-slate-200 truncate">{resultItem.title}</p>
-                    <p className="text-[10px] text-slate-500">
-                      Engine: {resultItem.model_name} • Format: {resultItem.mime_type}
-                    </p>
+                    <p className="text-[10px] text-slate-500">Format: PNG</p>
                   </div>
                   <a href={resultItem.output_url} download>
                     <Button size="sm">

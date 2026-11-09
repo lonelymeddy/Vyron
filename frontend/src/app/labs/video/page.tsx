@@ -11,23 +11,32 @@ import {
   AlertCircle,
   RefreshCw,
   Upload,
-  CheckCircle2
+  CheckCircle2,
+  Sliders,
+  ChevronDown
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button, Card, Badge } from "@/components/ui";
 import { getToken } from "@/lib/api";
 
+const videoStyles = [
+  { id: "cinematic", label: "Cinematic Film", desc: "Wide anamorphic composition with natural lighting" },
+  { id: "dynamic", label: "Dynamic Action", desc: "Fast tracking shots with fluid motion blur" },
+  { id: "commercial", label: "Commercial / Studio", desc: "Polished studio lighting and elegant slow pans" },
+];
+
 export default function VideoLabPage() {
   const [activeTab, setActiveTab] = useState<"generate" | "utilities">("generate");
   const [prompt, setPrompt] = useState("");
-  const [selectedModel, setSelectedModel] = useState("Wan 2.1");
+  const [videoStyle, setVideoStyle] = useState("cinematic");
   const [duration, setDuration] = useState(5);
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [resolution, setResolution] = useState("720p");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
-  const [utilityOp, setUtilityOp] = useState<"trim" | "resize" | "extract_audio" | "thumbnail">("thumbnail");
+  const [utilityOp, setUtilityOp] = useState<"thumbnail" | "extract_audio" | "trim" | "resize">("thumbnail");
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(5);
 
@@ -54,15 +63,17 @@ export default function VideoLabPage() {
       if (res.ok) {
         const data = await res.json();
         setVideoUrl(data.url);
+      } else {
+        setErrorMessage("Video upload failed. Please try a different file.");
       }
     } catch (err) {
-      console.error("Video upload failed", err);
+      setErrorMessage("Could not upload video. Please check your network connection.");
     }
   };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setErrorMessage("Please enter a scene prompt for the video");
+      setErrorMessage("Please enter a scene description for the video.");
       return;
     }
     setProcessing(true);
@@ -79,7 +90,7 @@ export default function VideoLabPage() {
         },
         body: JSON.stringify({
           prompt,
-          model_name: selectedModel,
+          model_name: videoStyle,
           aspect_ratio: aspectRatio,
           duration,
           resolution,
@@ -88,12 +99,12 @@ export default function VideoLabPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.detail || "Video generation failed");
+        setErrorMessage(data.detail || "Video generation is temporarily unavailable. Please try again.");
       } else {
         setResultItem(data);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error occurred");
+      setErrorMessage("Video generation is temporarily unavailable. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -101,7 +112,7 @@ export default function VideoLabPage() {
 
   const handleUtility = async () => {
     if (!videoUrl) {
-      setErrorMessage("Please upload a video file first");
+      setErrorMessage("Please upload a video file first.");
       return;
     }
     setProcessing(true);
@@ -127,12 +138,12 @@ export default function VideoLabPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.detail || "Video utility failed");
+        setErrorMessage(data.detail || "Video processing could not be completed. Please try again.");
       } else {
         setResultItem(data);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error occurred");
+      setErrorMessage("Video processing could not be completed. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -145,33 +156,33 @@ export default function VideoLabPage() {
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
               <VideoIcon className="w-6 h-6 text-violet-400" />
-              Video Lab Studio
+              Video Lab
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Text-to-Video Synthesis (Wan 2.1, Wan 2.2, LTX-Video) & Native Processing Utilities
+              Produce cinematic videos from prompts, animate images, and edit finished footage.
             </p>
           </div>
 
           <div className="flex bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
             <button
-              onClick={() => setActiveTab("generate")}
+              onClick={() => { setActiveTab("generate"); setErrorMessage(""); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "generate"
                   ? "bg-violet-600 text-white shadow"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              Text-to-Video
+              Generate Videos
             </button>
             <button
-              onClick={() => setActiveTab("utilities")}
+              onClick={() => { setActiveTab("utilities"); setErrorMessage(""); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "utilities"
                   ? "bg-violet-600 text-white shadow"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              Video Utilities & Editing
+              Video Utilities
             </button>
           </div>
         </div>
@@ -183,12 +194,12 @@ export default function VideoLabPage() {
                 <>
                   <div>
                     <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                      Scene Description & Motion Prompt
+                      Scene Description & Motion
                     </label>
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="e.g. Cinematic drone tracking shot gliding through a neon cyber city at night, rain pouring on glass skyscrapers..."
+                      placeholder="Describe the cinematic scene, camera movement, and action..."
                       rows={4}
                       className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
                     />
@@ -197,16 +208,16 @@ export default function VideoLabPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                        Video Foundation Engine
+                        Cinematic Style
                       </label>
                       <select
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
+                        value={videoStyle}
+                        onChange={(e) => setVideoStyle(e.target.value)}
                         className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
                       >
-                        <option value="Wan 2.1">Wan 2.1 (Apache 2.0)</option>
-                        <option value="Wan 2.2">Wan 2.2 I2V-A14B (Apache 2.0)</option>
-                        <option value="LTX-Video">LTX-Video (Apache 2.0)</option>
+                        {videoStyles.map((s) => (
+                          <option key={s.id} value={s.id}>{s.label}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -219,42 +230,57 @@ export default function VideoLabPage() {
                         onChange={(e) => setAspectRatio(e.target.value)}
                         className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
                       >
-                        <option value="16:9">16:9 Widescreen (1280x720)</option>
-                        <option value="9:16">9:16 Vertical Story (720x1280)</option>
+                        <option value="16:9">16:9 Widescreen</option>
+                        <option value="9:16">9:16 Vertical Story</option>
                         <option value="1:1">1:1 Square</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                        Target Duration
-                      </label>
-                      <select
-                        value={duration}
-                        onChange={(e) => setDuration(Number(e.target.value))}
-                        className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
-                      >
-                        <option value={3}>3 Seconds</option>
-                        <option value={5}>5 Seconds</option>
-                        <option value={10}>10 Seconds</option>
-                      </select>
-                    </div>
+                  {/* Progressive Disclosure: Advanced Settings */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      <Sliders className="w-3.5 h-3.5" />
+                      <span>{showAdvanced ? "Hide Quality Settings" : "Show Quality Settings"}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                    </button>
 
-                    <div>
-                      <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                        Output Resolution
-                      </label>
-                      <select
-                        value={resolution}
-                        onChange={(e) => setResolution(e.target.value)}
-                        className="w-full bg-[#080b11] border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
-                      >
-                        <option value="720p">720p HD</option>
-                        <option value="1080p">1080p Full HD</option>
-                      </select>
-                    </div>
+                    {showAdvanced && (
+                      <div className="mt-3 p-3 bg-[#080b11] border border-slate-800 rounded-xl grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                            Target Duration
+                          </label>
+                          <select
+                            value={duration}
+                            onChange={(e) => setDuration(Number(e.target.value))}
+                            className="w-full bg-[#0d121c] border border-slate-800 rounded-lg p-2 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
+                          >
+                            <option value={3}>3 Seconds</option>
+                            <option value={5}>5 Seconds</option>
+                            <option value={10}>10 Seconds</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                            Resolution
+                          </label>
+                          <select
+                            value={resolution}
+                            onChange={(e) => setResolution(e.target.value)}
+                            className="w-full bg-[#0d121c] border border-slate-800 rounded-lg p-2 text-xs text-slate-100 focus:outline-none focus:border-violet-500"
+                          >
+                            <option value="720p">720p HD</option>
+                            <option value="1080p">1080p Full HD</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <Button
@@ -265,7 +291,7 @@ export default function VideoLabPage() {
                     {processing ? (
                       <span className="flex items-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        Queuing Video Render Worker...
+                        Generating Video Scene...
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
@@ -284,7 +310,7 @@ export default function VideoLabPage() {
                     <label className="flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-xl cursor-pointer hover:border-violet-500 bg-[#080b11]">
                       <Upload className="w-5 h-5 text-violet-400 mb-1" />
                       <span className="text-xs text-slate-300">
-                        {videoFile ? videoFile.name : "Choose an MP4/WEBM video"}
+                        {videoFile ? videoFile.name : "Choose a video (MP4, MOV, WEBM)"}
                       </span>
                       <input
                         type="file"
@@ -302,7 +328,7 @@ export default function VideoLabPage() {
 
                   <div>
                     <label className="text-xs font-bold text-slate-200 block mb-1.5">
-                      Video Utility Operation
+                      Utility Tool
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -314,7 +340,7 @@ export default function VideoLabPage() {
                         }`}
                       >
                         <VideoIcon className="w-3.5 h-3.5 text-violet-400" />
-                        Thumbnail Extraction
+                        Extract Thumbnail
                       </button>
 
                       <button
@@ -326,7 +352,7 @@ export default function VideoLabPage() {
                         }`}
                       >
                         <FileAudio className="w-3.5 h-3.5 text-emerald-400" />
-                        Audio Extraction
+                        Extract Audio
                       </button>
 
                       <button
@@ -338,7 +364,7 @@ export default function VideoLabPage() {
                         }`}
                       >
                         <Scissors className="w-3.5 h-3.5 text-amber-400" />
-                        Video Trimming
+                        Trim Footage
                       </button>
 
                       <button
@@ -350,7 +376,7 @@ export default function VideoLabPage() {
                         }`}
                       >
                         <Maximize2 className="w-3.5 h-3.5 text-blue-400" />
-                        Video Resizing
+                        Resize Resolution
                       </button>
                     </div>
                   </div>
@@ -359,7 +385,7 @@ export default function VideoLabPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-slate-200 block mb-1">
-                          Start Sec
+                          Start (sec)
                         </label>
                         <input
                           type="number"
@@ -370,7 +396,7 @@ export default function VideoLabPage() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-200 block mb-1">
-                          End Sec
+                          End (sec)
                         </label>
                         <input
                           type="number"
@@ -390,12 +416,12 @@ export default function VideoLabPage() {
                     {processing ? (
                       <span className="flex items-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        Processing Video Pipeline...
+                        Processing Video...
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
                         <Scissors className="w-4 h-4" />
-                        Execute Operation
+                        Apply Tool
                       </span>
                     )}
                   </Button>
@@ -409,20 +435,20 @@ export default function VideoLabPage() {
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                    Video Preview & Player
+                    Video Preview
                   </span>
                   {resultItem && (
                     <Badge variant="success" className="text-[10px]">
-                      Processed
+                      Ready
                     </Badge>
                   )}
                 </div>
 
                 {errorMessage && (
-                  <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
+                  <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold">Inference Worker Notice</p>
+                      <p className="font-semibold">Notice</p>
                       <p className="mt-0.5 text-slate-300">{errorMessage}</p>
                     </div>
                   </div>
@@ -432,18 +458,18 @@ export default function VideoLabPage() {
                   {processing ? (
                     <div className="text-center space-y-2">
                       <RefreshCw className="w-8 h-8 text-violet-400 animate-spin mx-auto" />
-                      <p className="text-xs text-slate-400">Processing media stream...</p>
+                      <p className="text-xs text-slate-400">Processing video...</p>
                     </div>
                   ) : resultItem ? (
                     resultItem.mime_type?.startsWith("image") ? (
                       <img src={resultItem.output_url} alt="Thumbnail" className="max-h-[380px] object-contain rounded-lg" />
                     ) : (
-                      <video src={resultItem.output_url} controls className="max-h-[380px] w-full object-contain rounded-lg" />
+                      <video src={resultItem.output_url} controls className="max-h-[380px] w-full object-contain rounded-lg shadow-xl" />
                     )
                   ) : (
                     <div className="text-center space-y-2 text-slate-600">
                       <VideoIcon className="w-12 h-12 mx-auto" />
-                      <p className="text-xs">Generated or edited video preview will appear here</p>
+                      <p className="text-xs">Generated or edited video will appear here</p>
                     </div>
                   )}
                 </div>
@@ -454,13 +480,13 @@ export default function VideoLabPage() {
                   <div className="text-xs text-slate-400 truncate max-w-sm">
                     <p className="font-semibold text-slate-200 truncate">{resultItem.title}</p>
                     <p className="text-[10px] text-slate-500">
-                      Engine: {resultItem.model_name} • Format: {resultItem.mime_type}
+                      Format: {resultItem.mime_type || "video/mp4"}
                     </p>
                   </div>
                   <a href={resultItem.output_url} download>
                     <Button size="sm">
                       <Download className="w-3.5 h-3.5 mr-1.5" />
-                      Download Video Asset
+                      Download Video
                     </Button>
                   </a>
                 </div>
